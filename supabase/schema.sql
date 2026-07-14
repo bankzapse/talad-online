@@ -31,7 +31,9 @@ create table if not exists sellers (
 );
 
 -- ---------- listings ----------
-create type listing_status as enum ('active','sold','hidden','pending_review');
+do $$ begin
+  create type listing_status as enum ('active','sold','hidden','pending_review');
+exception when duplicate_object then null; end $$;
 
 create table if not exists listings (
   id uuid primary key default gen_random_uuid(),
@@ -62,7 +64,9 @@ create table if not exists packages (
 );
 
 -- ---------- payments ----------
-create type payment_status as enum ('pending','verified','rejected');
+do $$ begin
+  create type payment_status as enum ('pending','verified','rejected');
+exception when duplicate_object then null; end $$;
 
 create table if not exists payments (
   id uuid primary key default gen_random_uuid(),
@@ -110,23 +114,27 @@ alter table sellers  enable row level security;
 alter table payments enable row level security;
 
 -- ใครๆ อ่านประกาศที่ active ได้ (ฝั่งผู้ซื้อไม่ต้องล็อกอิน)
+drop policy if exists "public read active listings" on listings;
 create policy "public read active listings"
   on listings for select
   using (status = 'active');
 
 -- เจ้าของอ่าน/แก้/ลบประกาศตัวเองได้
+drop policy if exists "owner manage own listings" on listings;
 create policy "owner manage own listings"
   on listings for all
   using (seller_id::text = (auth.jwt() ->> 'seller_id'))
   with check (seller_id::text = (auth.jwt() ->> 'seller_id'));
 
 -- เจ้าของอ่าน/แก้ข้อมูลตัวเอง
+drop policy if exists "seller self" on sellers;
 create policy "seller self"
   on sellers for all
   using (id::text = (auth.jwt() ->> 'seller_id'))
   with check (id::text = (auth.jwt() ->> 'seller_id'));
 
 -- เจ้าของเห็น payment ตัวเอง
+drop policy if exists "payment self read" on payments;
 create policy "payment self read"
   on payments for select
   using (seller_id::text = (auth.jwt() ->> 'seller_id'));
@@ -166,6 +174,7 @@ values ('listings','listings', true)
 on conflict (id) do nothing;
 
 -- อนุญาตอ่าน public + เขียนผ่าน service role (แอปอัปโหลดฝั่ง server)
+drop policy if exists "public read listing images" on storage.objects;
 create policy "public read listing images"
   on storage.objects for select
   using (bucket_id = 'listings');
