@@ -1,0 +1,42 @@
+import type { Unit } from "./types";
+
+// แสดงราคาพร้อมหน่วยชัดเจน กันการเทียบข้ามหน่วย (กติกาสำคัญในแผน)
+export function formatPrice(price: number, unit: Unit): string {
+  const n = new Intl.NumberFormat("th-TH").format(price);
+  if (unit === "บาท/กก.") return `${n} ฿/กก.`;
+  return `${n} ฿ / ${unit}`;
+}
+
+export function formatBaht(n: number): string {
+  return new Intl.NumberFormat("th-TH", {
+    style: "currency",
+    currency: "THB",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+// "เข้าร่วมเมื่อ" — แปลงเป็นข้อความไทยแบบสั้น
+export function joinedLabel(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("th-TH", {
+    year: "numeric",
+    month: "short",
+  });
+}
+
+export function daysLeft(iso: string | null): number | null {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  return Math.ceil(ms / (1000 * 60 * 60 * 24));
+}
+
+export function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "เมื่อสักครู่";
+  if (mins < 60) return `${mins} นาทีที่แล้ว`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} ชม.ที่แล้ว`;
+  const days = Math.floor(hrs / 24);
+  return `${days} วันที่แล้ว`;
+}

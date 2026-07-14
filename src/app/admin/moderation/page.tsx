@@ -1,0 +1,74 @@
+import AdminNav from "@/components/AdminNav";
+import { getModerationQueue, getSeller, getCategory } from "@/lib/data";
+import { timeAgo } from "@/lib/format";
+import { moderateAction } from "@/app/actions";
+
+export const dynamic = "force-dynamic";
+
+export default async function Moderation() {
+  const queue = getModerationQueue();
+
+  return (
+    <div>
+      <h1 className="mb-4 text-xl font-bold">คิวตรวจประกาศ</h1>
+      <AdminNav active="moderation" />
+
+      <p className="mb-3 text-sm text-slate-500">
+        ประกาศที่ติดคำต้องห้าม หรือถูกผู้ใช้รายงาน จะเข้าคิวที่นี่ (auto-publish อื่นๆ ไม่ต้องรอ)
+      </p>
+
+      {queue.length === 0 ? (
+        <div className="card p-10 text-center text-slate-400">✓ ไม่มีประกาศค้างตรวจ</div>
+      ) : (
+        <div className="space-y-2">
+          {queue.map((l) => {
+            const seller = getSeller(l.sellerId);
+            const cat = getCategory(l.categoryId);
+            const approve = moderateAction.bind(null, l.id, "approve");
+            const remove = moderateAction.bind(null, l.id, "remove");
+            return (
+              <div key={l.id} className="card p-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xl">
+                    {cat?.emoji}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium">{l.title}</div>
+                    <div className="text-xs text-slate-400">
+                      {seller?.displayName} · {timeAgo(l.createdAt)}
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {l.flaggedKeywords.map((k) => (
+                        <span key={k} className="chip border-red-200 bg-red-50 text-red-600">
+                          คำต้องห้าม: {k}
+                        </span>
+                      ))}
+                      {l.reportCount > 0 && (
+                        <span className="chip border-amber-200 bg-amber-50 text-amber-600">
+                          ถูกรายงาน {l.reportCount} ครั้ง
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-col gap-1">
+                    <form action={approve}>
+                      <button className="btn-outline w-full px-3 py-1 text-xs">อนุมัติ</button>
+                    </form>
+                    <form action={remove}>
+                      <button className="btn w-full bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600">
+                        ลบ/ซ่อน
+                      </button>
+                    </form>
+                  </div>
+                </div>
+                <p className="mt-2 rounded bg-slate-50 p-2 text-xs text-slate-500">
+                  {l.description}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
