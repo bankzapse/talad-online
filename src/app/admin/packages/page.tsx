@@ -5,7 +5,7 @@ import { savePackageAction } from "@/app/actions";
 export const dynamic = "force-dynamic";
 
 export default async function Packages() {
-  const packages = getPackages();
+  const packages = await getPackages();
 
   return (
     <div>

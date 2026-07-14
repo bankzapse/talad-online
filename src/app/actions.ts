@@ -43,7 +43,13 @@ export async function logout() {
 
 // ---------- listings ----------
 export async function createListingAction(sellerId: string, formData: FormData) {
-  createListing({
+  let images: string[] = [];
+  try {
+    images = JSON.parse(String(formData.get("images") || "[]"));
+  } catch {
+    images = [];
+  }
+  await createListing({
     sellerId,
     title: String(formData.get("title") || "").trim(),
     description: String(formData.get("description") || "").trim(),
@@ -51,54 +57,55 @@ export async function createListingAction(sellerId: string, formData: FormData) 
     unit: String(formData.get("unit") || "ชิ้น") as Unit,
     categoryId: String(formData.get("categoryId") || ""),
     areaId: String(formData.get("areaId") || ""),
+    images,
   });
   redirect("/sell");
 }
 
 export async function setListingStatusAction(id: string, status: "active" | "sold" | "hidden") {
-  updateListingStatus(id, status);
+  await updateListingStatus(id, status);
   redirect("/sell");
 }
 
 // ---------- membership ----------
 export async function startTrialAction(sellerId: string) {
-  startTrial(sellerId);
+  await startTrial(sellerId);
   redirect("/sell/membership");
 }
 
 export async function payAction(sellerId: string, packageId: string) {
   // จำลองอัปสลิป → สร้าง payment pending รอ admin/ระบบยืนยัน
-  createPayment(sellerId, packageId, "demo-slip-uploaded");
+  await createPayment(sellerId, packageId, "demo-slip-uploaded");
   redirect("/sell/membership?paid=1");
 }
 
 // ---------- admin ----------
 export async function verifyPaymentAction(paymentId: string) {
-  verifyPayment(paymentId);
+  await verifyPayment(paymentId);
   redirect("/admin/payments");
 }
 export async function rejectPaymentAction(paymentId: string) {
-  rejectPayment(paymentId, "ยอด/สลิปไม่ตรง");
+  await rejectPayment(paymentId, "ยอด/สลิปไม่ตรง");
   redirect("/admin/payments");
 }
 export async function moderateAction(id: string, action: "approve" | "remove") {
-  updateListingStatus(id, action === "approve" ? "active" : "hidden");
+  await updateListingStatus(id, action === "approve" ? "active" : "hidden");
   redirect("/admin/moderation");
 }
 export async function adjustExpiryAction(sellerId: string, formData: FormData) {
   const days = Number(formData.get("days") || 0);
   const reason = String(formData.get("reason") || "ปรับด้วยมือ");
-  adjustExpiry(sellerId, days, reason);
+  await adjustExpiry(sellerId, days, reason);
   redirect("/admin/payments");
 }
 export async function toggleBlockAction(sellerId: string, blocked: boolean) {
-  setSellerBlocked(sellerId, blocked);
+  await setSellerBlocked(sellerId, blocked);
   redirect("/admin");
 }
 export async function savePackageAction(formData: FormData) {
   const id = String(formData.get("id"));
-  const existing = getPackages().find((p) => p.id === id);
-  upsertPackage({
+  const existing = (await getPackages()).find((p) => p.id === id);
+  await upsertPackage({
     id,
     name: existing?.name || id,
     days: existing?.days || 30,

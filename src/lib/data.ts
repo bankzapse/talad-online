@@ -8,28 +8,106 @@ import type {
   Seller,
 } from "./types";
 import { checkBlocklist } from "./blocklist";
+import { getServiceClient, isSupabaseReady } from "./supabase/admin";
+import { rowToSeller, rowToListing, rowToPayment, rowToPackage } from "./mappers";
 
-// อ่าน — reference data
-export function getCategories(): Category[] {
+// -----------------------------------------------------------------------------
+// Data layer (async) — สองแบ็กเอนด์:
+//   • Supabase (service client) เมื่อกรอก env ครบ → persist จริง
+//   • in-memory demo store เมื่อยังไม่ตั้งค่า → เห็นของทันทีตอน deploy
+// UI เรียกผ่านฟังก์ชันเหล่านี้เหมือนกันทั้งสองโหมด
+// -----------------------------------------------------------------------------
+
+const sb = () => getServiceClient()!;
+
+// ---------- reference ----------
+export async function getCategories(): Promise<Category[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb().from("categories").select("*").order("id");
+    return (data ?? []).map((r) => ({ id: r.id, name: r.name, emoji: r.emoji }));
+  }
   return db.categories;
 }
-export function getAreas(): Area[] {
+
+export async function getAreas(): Promise<Area[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb().from("areas").select("*").order("id");
+    return (data ?? []).map((r) => ({ id: r.id, province: r.province, market: r.market }));
+  }
   return db.areas;
 }
-export function getCategory(id: string): Category | undefined {
-  return db.categories.find((c) => c.id === id);
+
+export async function getCategory(id: string): Promise<Category | undefined> {
+  return (await getCategories()).find((c) => c.id === id);
 }
-export function getArea(id: string): Area | undefined {
-  return db.areas.find((a) => a.id === id);
+export async function getArea(id: string): Promise<Area | undefined> {
+  return (await getAreas()).find((a) => a.id === id);
 }
-export function getSeller(id: string): Seller | undefined {
+
+export async function getSeller(id: string): Promise<Seller | undefined> {
+  if (isSupabaseReady()) {
+    const { data } = await sb().from("sellers").select("*").eq("id", id).maybeSingle();
+    return data ? rowToSeller(data) : undefined;
+  }
   return db.sellers.find((s) => s.id === id);
 }
-export function getPackages(activeOnly = false): MembershipPackage[] {
+
+export async function getSellerByLineId(lineUserId: string): Promise<Seller | undefined> {
+  if (isSupabaseReady()) {
+    const { data } = await sb()
+      .from("sellers")
+      .select("*")
+      .eq("line_user_id", lineUserId)
+      .maybeSingle();
+    return data ? rowToSeller(data) : undefined;
+  }
+  return db.sellers.find((s) => s.lineUserId === lineUserId);
+}
+
+// สร้าง/หา seller จาก LINE Login (upsert by line_user_id)
+export async function upsertSellerFromLine(
+  lineUserId: string,
+  displayName: string
+): Promise<Seller> {
+  if (isSupabaseReady()) {
+    const existing = await getSellerByLineId(lineUserId);
+    if (existing) return existing;
+    const { data } = await sb()
+      .from("sellers")
+      .insert({ line_user_id: lineUserId, display_name: displayName })
+      .select("*")
+      .single();
+    return rowToSeller(data!);
+  }
+  let s = db.sellers.find((x) => x.lineUserId === lineUserId);
+  if (!s) {
+    s = {
+      id: `seller-${Math.random().toString(36).slice(2, 8)}`,
+      displayName,
+      phone: null,
+      phoneVerified: false,
+      joinedAt: new Date().toISOString(),
+      membershipExpiresAt: null,
+      trialUsed: false,
+      blocked: false,
+      lineUserId,
+    };
+    db.sellers.push(s);
+  }
+  return s;
+}
+
+export async function getPackages(activeOnly = false): Promise<MembershipPackage[]> {
+  if (isSupabaseReady()) {
+    let q = sb().from("packages").select("*").order("days");
+    if (activeOnly) q = q.eq("active", true);
+    const { data } = await q;
+    return (data ?? []).map(rowToPackage);
+  }
   return db.packages.filter((p) => (activeOnly ? p.active : true));
 }
 
-// อ่าน — ประกาศ (พร้อม filter/sort)
+// ---------- listings ----------
 export interface ListingQuery {
   categoryId?: string;
   areaId?: string;
@@ -39,55 +117,72 @@ export interface ListingQuery {
   status?: Listing["status"];
 }
 
-export function queryListings(opts: ListingQuery = {}): Listing[] {
-  let rows = db.listings.slice();
-
-  if (opts.status) {
-    rows = rows.filter((l) => l.status === opts.status);
-  } else if (!opts.includeHidden) {
-    // ฝั่งผู้ซื้อเห็นเฉพาะ active (หมดอายุ = ซ่อน ไม่ลบ)
-    rows = rows.filter((l) => l.status === "active");
+export async function queryListings(opts: ListingQuery = {}): Promise<Listing[]> {
+  if (isSupabaseReady()) {
+    let q = sb().from("listings").select("*");
+    if (opts.status) q = q.eq("status", opts.status);
+    else if (!opts.includeHidden) q = q.eq("status", "active");
+    if (opts.categoryId) q = q.eq("category_id", opts.categoryId);
+    if (opts.areaId) q = q.eq("area_id", opts.areaId);
+    if (opts.q) q = q.or(`title.ilike.%${opts.q}%,description.ilike.%${opts.q}%`);
+    if (opts.sort === "price_asc") q = q.order("price", { ascending: true });
+    else if (opts.sort === "price_desc") q = q.order("price", { ascending: false });
+    else q = q.order("created_at", { ascending: false });
+    const { data } = await q;
+    return (data ?? []).map(rowToListing);
   }
 
+  let rows = db.listings.slice();
+  if (opts.status) rows = rows.filter((l) => l.status === opts.status);
+  else if (!opts.includeHidden) rows = rows.filter((l) => l.status === "active");
   if (opts.categoryId) rows = rows.filter((l) => l.categoryId === opts.categoryId);
   if (opts.areaId) rows = rows.filter((l) => l.areaId === opts.areaId);
   if (opts.q) {
-    const q = opts.q.toLowerCase().trim();
+    const qq = opts.q.toLowerCase().trim();
     rows = rows.filter(
-      (l) =>
-        l.title.toLowerCase().includes(q) ||
-        l.description.toLowerCase().includes(q)
+      (l) => l.title.toLowerCase().includes(qq) || l.description.toLowerCase().includes(qq)
     );
   }
-
-  switch (opts.sort) {
-    case "price_asc":
-      rows.sort((a, b) => a.price - b.price);
-      break;
-    case "price_desc":
-      rows.sort((a, b) => b.price - a.price);
-      break;
-    default:
-      rows.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-  }
+  if (opts.sort === "price_asc") rows.sort((a, b) => a.price - b.price);
+  else if (opts.sort === "price_desc") rows.sort((a, b) => b.price - a.price);
+  else rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return rows;
 }
 
-export function getListing(id: string): Listing | undefined {
+export async function getListing(id: string): Promise<Listing | undefined> {
+  if (isSupabaseReady()) {
+    const { data } = await sb().from("listings").select("*").eq("id", id).maybeSingle();
+    return data ? rowToListing(data) : undefined;
+  }
   return db.listings.find((l) => l.id === id);
 }
 
-export function getSellerListings(sellerId: string): Listing[] {
+export async function getSellerListings(sellerId: string): Promise<Listing[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb()
+      .from("listings")
+      .select("*")
+      .eq("seller_id", sellerId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map(rowToListing);
+  }
   return db.listings
     .filter((l) => l.sellerId === sellerId)
-    .sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-// เขียน — ลงประกาศใหม่ (ตรวจ blocklist → เข้าคิว admin ถ้าติด)
+export async function getSellerActiveCount(sellerId: string): Promise<number> {
+  if (isSupabaseReady()) {
+    const { count } = await sb()
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("seller_id", sellerId)
+      .eq("status", "active");
+    return count ?? 0;
+  }
+  return db.listings.filter((l) => l.sellerId === sellerId && l.status === "active").length;
+}
+
 export interface NewListingInput {
   sellerId: string;
   title: string;
@@ -99,8 +194,30 @@ export interface NewListingInput {
   images?: string[];
 }
 
-export function createListing(input: NewListingInput): Listing {
+export async function createListing(input: NewListingInput): Promise<Listing> {
   const flag = checkBlocklist(input.title, input.description);
+  const status: Listing["status"] = flag.hit ? "pending_review" : "active";
+
+  if (isSupabaseReady()) {
+    const { data } = await sb()
+      .from("listings")
+      .insert({
+        seller_id: input.sellerId,
+        title: input.title,
+        description: input.description,
+        price: input.price,
+        unit: input.unit,
+        category_id: input.categoryId,
+        area_id: input.areaId,
+        images: input.images ?? [],
+        status,
+        flagged_keywords: flag.matched,
+      })
+      .select("*")
+      .single();
+    return rowToListing(data!);
+  }
+
   const listing: Listing = {
     id: `l-${Math.random().toString(36).slice(2, 8)}`,
     sellerId: input.sellerId,
@@ -111,8 +228,7 @@ export function createListing(input: NewListingInput): Listing {
     categoryId: input.categoryId,
     areaId: input.areaId,
     images: input.images ?? [],
-    // auto-publish + ถ้าติด blocklist → เข้าคิวตรวจ (pending_review)
-    status: flag.hit ? "pending_review" : "active",
+    status,
     createdAt: new Date().toISOString(),
     reportCount: 0,
     flaggedKeywords: flag.matched,
@@ -122,73 +238,115 @@ export function createListing(input: NewListingInput): Listing {
   return listing;
 }
 
-export function updateListingStatus(id: string, status: Listing["status"]): void {
-  const l = getListing(id);
+export async function updateListingStatus(id: string, status: Listing["status"]): Promise<void> {
+  if (isSupabaseReady()) {
+    await sb().from("listings").update({ status }).eq("id", id);
+    return;
+  }
+  const l = db.listings.find((x) => x.id === id);
   if (l) l.status = status;
 }
 
-export function deleteListing(id: string): void {
-  const i = db.listings.findIndex((l) => l.id === id);
-  if (i >= 0) db.listings.splice(i, 1);
-}
-
-// รายงานประกาศ
-export function reportListing(listingId: string, reason: string): void {
+export async function reportListing(listingId: string, reason: string): Promise<void> {
+  if (isSupabaseReady()) {
+    await sb().from("reports").insert({ listing_id: listingId, reason });
+    const { data } = await sb()
+      .from("listings")
+      .select("report_count,status")
+      .eq("id", listingId)
+      .maybeSingle();
+    if (data) {
+      const rc = Number(data.report_count) + 1;
+      const status = rc >= 3 && data.status === "active" ? "pending_review" : data.status;
+      await sb().from("listings").update({ report_count: rc, status }).eq("id", listingId);
+    }
+    return;
+  }
   db.reports.unshift({
     id: `r-${Math.random().toString(36).slice(2, 8)}`,
     listingId,
     reason,
     createdAt: new Date().toISOString(),
   });
-  const l = getListing(listingId);
+  const l = db.listings.find((x) => x.id === listingId);
   if (l) {
     l.reportCount += 1;
-    // ถูก report ถึงเกณฑ์ → เข้าคิวตรวจอัตโนมัติ
     if (l.reportCount >= 3 && l.status === "active") l.status = "pending_review";
   }
 }
 
-// ปุ่มติดต่อ — rate limit + นับสถิติ (กันปั่น push + คุมต้นทุน)
-const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 ชั่วโมง
-const RATE_MAX = 5; // ต่อ key(ผู้ใช้/อุปกรณ์) ต่อประกาศ ต่อชั่วโมง
+// ---------- ปุ่มติดต่อ: rate-limit + สถิติ ----------
+const RATE_WINDOW_MS = 60 * 60 * 1000;
+const RATE_MAX = 5;
 
-export function tryContact(
+export async function tryContact(
   listingId: string,
   key: string
-): { ok: boolean; reason?: string } {
-  const now = Date.now();
-  // ล้าง event เก่า
-  db.contactEvents = db.contactEvents.filter((e) => now - e.at < RATE_WINDOW_MS);
-  const recent = db.contactEvents.filter(
-    (e) => e.listingId === listingId && e.key === key
-  );
-  if (recent.length >= RATE_MAX) {
-    return { ok: false, reason: "rate_limited" };
+): Promise<{ ok: boolean; reason?: string }> {
+  if (isSupabaseReady()) {
+    const since = new Date(Date.now() - RATE_WINDOW_MS).toISOString();
+    const { count } = await sb()
+      .from("contact_events")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listingId)
+      .eq("buyer_key", key)
+      .gte("created_at", since);
+    if ((count ?? 0) >= RATE_MAX) return { ok: false, reason: "rate_limited" };
+    await sb().from("contact_events").insert({ listing_id: listingId, buyer_key: key });
+    return { ok: true };
   }
+  const now = Date.now();
+  db.contactEvents = db.contactEvents.filter((e) => now - e.at < RATE_WINDOW_MS);
+  const recent = db.contactEvents.filter((e) => e.listingId === listingId && e.key === key);
+  if (recent.length >= RATE_MAX) return { ok: false, reason: "rate_limited" };
   db.contactEvents.push({ listingId, key, at: now });
   db.counters.contactClicked += 1;
   return { ok: true };
 }
 
-// สมาชิก
-export function startTrial(sellerId: string): void {
-  const s = getSeller(sellerId);
+// ---------- membership ----------
+export async function startTrial(sellerId: string): Promise<void> {
+  const exp = new Date();
+  exp.setDate(exp.getDate() + 30);
+  if (isSupabaseReady()) {
+    const s = await getSeller(sellerId);
+    if (s && !s.trialUsed) {
+      await sb()
+        .from("sellers")
+        .update({ trial_used: true, membership_expires_at: exp.toISOString() })
+        .eq("id", sellerId);
+    }
+    return;
+  }
+  const s = db.sellers.find((x) => x.id === sellerId);
   if (s && !s.trialUsed) {
     s.trialUsed = true;
-    const exp = new Date();
-    exp.setDate(exp.getDate() + 30);
     s.membershipExpiresAt = exp.toISOString();
     db.counters.trialStarted += 1;
   }
 }
 
-// สร้างคำขอชำระเงิน (อัปสลิป → รอ admin/ระบบยืนยัน)
-export function createPayment(
+export async function createPayment(
   sellerId: string,
   packageId: string,
   slipUrl: string | null
-): Payment {
-  const pkg = db.packages.find((p) => p.id === packageId);
+): Promise<Payment> {
+  const pkgs = await getPackages();
+  const pkg = pkgs.find((p) => p.id === packageId);
+  if (isSupabaseReady()) {
+    const { data } = await sb()
+      .from("payments")
+      .insert({
+        seller_id: sellerId,
+        package_id: packageId,
+        amount: pkg?.price ?? 0,
+        slip_url: slipUrl,
+        status: "pending",
+      })
+      .select("*")
+      .single();
+    return rowToPayment(data!);
+  }
   const payment: Payment = {
     id: `pay-${Math.random().toString(36).slice(2, 8)}`,
     sellerId,
@@ -203,30 +361,53 @@ export function createPayment(
   return payment;
 }
 
-// ยืนยันการจ่าย → ต่ออายุแบบ "ต่อท้ายวันเดิม" (กติกาในแผน)
-export function verifyPayment(paymentId: string): void {
+// ยืนยันการจ่าย → ต่ออายุ "ต่อท้ายวันเดิม"
+export async function verifyPayment(paymentId: string): Promise<void> {
+  if (isSupabaseReady()) {
+    const { data: pay } = await sb().from("payments").select("*").eq("id", paymentId).maybeSingle();
+    if (!pay || pay.status === "verified") return;
+    const pkgs = await getPackages();
+    const pkg = pkgs.find((p) => p.id === pay.package_id);
+    const seller = await getSeller(pay.seller_id);
+    if (!pkg || !seller) return;
+    const base =
+      seller.membershipExpiresAt && new Date(seller.membershipExpiresAt).getTime() > Date.now()
+        ? new Date(seller.membershipExpiresAt)
+        : new Date();
+    base.setDate(base.getDate() + pkg.days);
+    await sb()
+      .from("payments")
+      .update({ status: "verified", verified_at: new Date().toISOString() })
+      .eq("id", paymentId);
+    await sb()
+      .from("sellers")
+      .update({ membership_expires_at: base.toISOString() })
+      .eq("id", seller.id);
+    await logAdmin("ยืนยันการจ่าย", `${seller.displayName} • ${pkg.name} • ${pkg.price}฿`);
+    return;
+  }
   const pay = db.payments.find((p) => p.id === paymentId);
   if (!pay || pay.status === "verified") return;
   const pkg = db.packages.find((p) => p.id === pay.packageId);
-  const seller = getSeller(pay.sellerId);
+  const seller = db.sellers.find((s) => s.id === pay.sellerId);
   if (!pkg || !seller) return;
-
   pay.status = "verified";
   pay.verifiedAt = new Date().toISOString();
-
-  // ต่ออายุก่อนหมด = ต่อท้ายวันเดิม / หมดแล้ว = เริ่มจากวันนี้
   const base =
-    seller.membershipExpiresAt &&
-    new Date(seller.membershipExpiresAt).getTime() > Date.now()
+    seller.membershipExpiresAt && new Date(seller.membershipExpiresAt).getTime() > Date.now()
       ? new Date(seller.membershipExpiresAt)
       : new Date();
   base.setDate(base.getDate() + pkg.days);
   seller.membershipExpiresAt = base.toISOString();
   db.counters.paymentSuccess += 1;
-  logAdmin("ยืนยันการจ่าย", `${seller.displayName} • ${pkg.name} • ${pkg.price}฿`);
+  await logAdmin("ยืนยันการจ่าย", `${seller.displayName} • ${pkg.name} • ${pkg.price}฿`);
 }
 
-export function rejectPayment(paymentId: string, note: string): void {
+export async function rejectPayment(paymentId: string, note: string): Promise<void> {
+  if (isSupabaseReady()) {
+    await sb().from("payments").update({ status: "rejected", note }).eq("id", paymentId);
+    return;
+  }
   const pay = db.payments.find((p) => p.id === paymentId);
   if (pay) {
     pay.status = "rejected";
@@ -234,24 +415,45 @@ export function rejectPayment(paymentId: string, note: string): void {
   }
 }
 
-export function getPayments(): Payment[] {
+export async function getPayments(): Promise<Payment[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb()
+      .from("payments")
+      .select("*")
+      .order("created_at", { ascending: false });
+    return (data ?? []).map(rowToPayment);
+  }
   return db.payments;
 }
 
-// admin ปรับวันหมดอายุด้วยมือ + log (grace period/คืนเงิน)
-export function adjustExpiry(sellerId: string, days: number, reason: string): void {
-  const s = getSeller(sellerId);
-  if (!s) return;
+export async function adjustExpiry(sellerId: string, days: number, reason: string): Promise<void> {
+  const seller = await getSeller(sellerId);
+  if (!seller) return;
   const base =
-    s.membershipExpiresAt && new Date(s.membershipExpiresAt).getTime() > Date.now()
-      ? new Date(s.membershipExpiresAt)
+    seller.membershipExpiresAt && new Date(seller.membershipExpiresAt).getTime() > Date.now()
+      ? new Date(seller.membershipExpiresAt)
       : new Date();
   base.setDate(base.getDate() + days);
-  s.membershipExpiresAt = base.toISOString();
-  logAdmin("ปรับวันหมดอายุ", `${s.displayName} • ${days > 0 ? "+" : ""}${days} วัน • ${reason}`);
+  if (isSupabaseReady()) {
+    await sb()
+      .from("sellers")
+      .update({ membership_expires_at: base.toISOString() })
+      .eq("id", sellerId);
+  } else {
+    const s = db.sellers.find((x) => x.id === sellerId);
+    if (s) s.membershipExpiresAt = base.toISOString();
+  }
+  await logAdmin(
+    "ปรับวันหมดอายุ",
+    `${seller.displayName} • ${days > 0 ? "+" : ""}${days} วัน • ${reason}`
+  );
 }
 
-export function logAdmin(action: string, detail: string): void {
+export async function logAdmin(action: string, detail: string): Promise<void> {
+  if (isSupabaseReady()) {
+    await sb().from("admin_logs").insert({ action, detail });
+    return;
+  }
   db.adminLogs.unshift({
     id: `log-${Math.random().toString(36).slice(2, 8)}`,
     action,
@@ -260,8 +462,106 @@ export function logAdmin(action: string, detail: string): void {
   });
 }
 
-// admin — analytics + queue + logs
-export function getAnalytics() {
+// ---------- admin ----------
+export async function getSellers(): Promise<Seller[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb().from("sellers").select("*").order("joined_at", { ascending: false });
+    return (data ?? []).map(rowToSeller);
+  }
+  return db.sellers;
+}
+
+export async function setSellerBlocked(sellerId: string, blocked: boolean): Promise<void> {
+  const s = await getSeller(sellerId);
+  if (isSupabaseReady()) {
+    await sb().from("sellers").update({ blocked }).eq("id", sellerId);
+  } else {
+    const local = db.sellers.find((x) => x.id === sellerId);
+    if (local) local.blocked = blocked;
+  }
+  await logAdmin(blocked ? "แบนผู้ใช้" : "ปลดแบน", s?.displayName ?? sellerId);
+}
+
+export async function upsertPackage(pkg: MembershipPackage): Promise<void> {
+  if (isSupabaseReady()) {
+    await sb().from("packages").upsert({
+      id: pkg.id,
+      name: pkg.name,
+      days: pkg.days,
+      price: pkg.price,
+      active: pkg.active,
+    });
+    return;
+  }
+  const i = db.packages.findIndex((p) => p.id === pkg.id);
+  if (i >= 0) db.packages[i] = pkg;
+  else db.packages.push(pkg);
+}
+
+export async function getModerationQueue(): Promise<Listing[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb()
+      .from("listings")
+      .select("*")
+      .or("status.eq.pending_review,report_count.gt.0")
+      .order("created_at", { ascending: false });
+    return (data ?? []).map(rowToListing);
+  }
+  return db.listings.filter((l) => l.status === "pending_review" || l.reportCount > 0);
+}
+
+export async function getAdminLogs() {
+  if (isSupabaseReady()) {
+    const { data } = await sb()
+      .from("admin_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    return (data ?? []).map((r) => ({
+      id: String(r.id),
+      action: r.action,
+      detail: r.detail,
+      createdAt: String(r.created_at),
+    }));
+  }
+  return db.adminLogs;
+}
+
+export async function getAnalytics() {
+  if (isSupabaseReady()) {
+    const c = sb();
+    const now = new Date().toISOString();
+    const [sellersTotal, paying, activeListings, pendingReview, listingsCreated, verifiedPays] =
+      await Promise.all([
+        c.from("sellers").select("id", { count: "exact", head: true }),
+        c
+          .from("sellers")
+          .select("id", { count: "exact", head: true })
+          .eq("trial_used", true)
+          .gt("membership_expires_at", now),
+        c.from("listings").select("id", { count: "exact", head: true }).eq("status", "active"),
+        c.from("listings").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
+        c.from("listings").select("id", { count: "exact", head: true }),
+        c.from("payments").select("amount").eq("status", "verified"),
+      ]);
+    const revenue = (verifiedPays.data ?? []).reduce((s, p) => s + Number(p.amount), 0);
+    const contactClicked = (await c.from("contact_events").select("id", { count: "exact", head: true })).count ?? 0;
+    const paymentSuccess = (verifiedPays.data ?? []).length;
+    const trialStarted = (await c.from("sellers").select("id", { count: "exact", head: true }).eq("trial_used", true)).count ?? 0;
+    return {
+      listingsCreated: listingsCreated.count ?? 0,
+      contactClicked,
+      trialStarted,
+      paymentSuccess,
+      sellersTotal: sellersTotal.count ?? 0,
+      payingSellers: paying.count ?? 0,
+      activeListings: activeListings.count ?? 0,
+      pendingReview: pendingReview.count ?? 0,
+      revenue,
+      conversion: trialStarted > 0 ? Math.round((paymentSuccess / trialStarted) * 100) : 0,
+    };
+  }
+
   const sellers = db.sellers;
   const paying = sellers.filter(
     (s) =>
@@ -284,33 +584,4 @@ export function getAnalytics() {
         ? Math.round((db.counters.paymentSuccess / db.counters.trialStarted) * 100)
         : 0,
   };
-}
-
-export function getModerationQueue(): Listing[] {
-  return db.listings.filter(
-    (l) => l.status === "pending_review" || l.reportCount > 0
-  );
-}
-
-export function getAdminLogs() {
-  return db.adminLogs;
-}
-
-export function getSellers(): Seller[] {
-  return db.sellers;
-}
-
-export function setSellerBlocked(sellerId: string, blocked: boolean): void {
-  const s = getSeller(sellerId);
-  if (s) {
-    s.blocked = blocked;
-    logAdmin(blocked ? "แบนผู้ใช้" : "ปลดแบน", s.displayName);
-  }
-}
-
-// package admin
-export function upsertPackage(pkg: MembershipPackage): void {
-  const i = db.packages.findIndex((p) => p.id === pkg.id);
-  if (i >= 0) db.packages[i] = pkg;
-  else db.packages.push(pkg);
 }

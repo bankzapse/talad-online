@@ -1,6 +1,6 @@
 import Filters from "@/components/Filters";
 import ListingCard from "@/components/ListingCard";
-import { getCategories, getAreas, queryListings } from "@/lib/data";
+import { getCategories, getAreas, getSellers, queryListings } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -10,14 +10,21 @@ export default async function Home({
   searchParams: Promise<{ [k: string]: string | undefined }>;
 }) {
   const sp = await searchParams;
-  const categories = getCategories();
-  const areas = getAreas();
-  const listings = queryListings({
-    categoryId: sp.category || undefined,
-    areaId: sp.area || undefined,
-    q: sp.q || undefined,
-    sort: (sp.sort as "newest" | "price_asc" | "price_desc") || "newest",
-  });
+  const [categories, areas, sellers, listings] = await Promise.all([
+    getCategories(),
+    getAreas(),
+    getSellers(),
+    queryListings({
+      categoryId: sp.category || undefined,
+      areaId: sp.area || undefined,
+      q: sp.q || undefined,
+      sort: (sp.sort as "newest" | "price_asc" | "price_desc") || "newest",
+    }),
+  ]);
+
+  const catMap = new Map(categories.map((c) => [c.id, c]));
+  const areaMap = new Map(areas.map((a) => [a.id, a]));
+  const sellerMap = new Map(sellers.map((s) => [s.id, s]));
 
   return (
     <div>
@@ -30,9 +37,7 @@ export default async function Home({
 
       <Filters categories={categories} areas={areas} />
 
-      <div className="mb-3 text-sm text-slate-500">
-        พบ {listings.length} ประกาศ
-      </div>
+      <div className="mb-3 text-sm text-slate-500">พบ {listings.length} ประกาศ</div>
 
       {listings.length === 0 ? (
         <div className="card p-10 text-center text-slate-400">
@@ -41,7 +46,13 @@ export default async function Home({
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {listings.map((l) => (
-            <ListingCard key={l.id} listing={l} />
+            <ListingCard
+              key={l.id}
+              listing={l}
+              emoji={catMap.get(l.categoryId)?.emoji ?? "🛍️"}
+              areaMarket={areaMap.get(l.areaId)?.market ?? ""}
+              sellerVerified={Boolean(sellerMap.get(l.sellerId)?.phoneVerified)}
+            />
           ))}
         </div>
       )}

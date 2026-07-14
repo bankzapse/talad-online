@@ -4,6 +4,7 @@ import { getCurrentSeller } from "@/lib/auth";
 import { getCategories, getAreas } from "@/lib/data";
 import { UNITS } from "@/lib/types";
 import { createListingAction } from "@/app/actions";
+import ImageUpload from "@/components/ImageUpload";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,7 @@ export default async function NewListing() {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
 
-  const categories = getCategories();
-  const areas = getAreas();
+  const [categories, areas] = await Promise.all([getCategories(), getAreas()]);
   const action = createListingAction.bind(null, seller.id);
 
   return (
@@ -35,6 +35,11 @@ export default async function NewListing() {
           <div>
             <label className="label">รายละเอียด</label>
             <textarea name="description" rows={3} className="input" placeholder="ความสด แหล่งที่มา ฯลฯ" />
+          </div>
+
+          <div>
+            <label className="label">รูปสินค้า</label>
+            <ImageUpload />
           </div>
 
           <div className="flex gap-3">

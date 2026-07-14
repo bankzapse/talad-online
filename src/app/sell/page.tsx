@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentSeller } from "@/lib/auth";
-import { getSellerListings, getCategory, getArea } from "@/lib/data";
+import { getSellerListings, getCategories, getAreas } from "@/lib/data";
 import { formatPrice, daysLeft } from "@/lib/format";
 import { setListingStatusAction, logout } from "@/app/actions";
 
@@ -18,7 +18,13 @@ export default async function SellHome() {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
 
-  const listings = getSellerListings(seller.id);
+  const [listings, categories, areas] = await Promise.all([
+    getSellerListings(seller.id),
+    getCategories(),
+    getAreas(),
+  ]);
+  const catMap = new Map(categories.map((c) => [c.id, c]));
+  const areaMap = new Map(areas.map((a) => [a.id, a]));
   const dleft = daysLeft(seller.membershipExpiresAt);
   const active = dleft !== null && dleft > 0;
 
@@ -80,8 +86,8 @@ export default async function SellHome() {
           </div>
         )}
         {listings.map((l) => {
-          const cat = getCategory(l.categoryId);
-          const area = getArea(l.areaId);
+          const cat = catMap.get(l.categoryId);
+          const area = areaMap.get(l.areaId);
           return (
             <div key={l.id} className="card flex items-center gap-3 p-3">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-2xl">

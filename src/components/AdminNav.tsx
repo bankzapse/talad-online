@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getModerationQueue, getPayments } from "@/lib/data";
 
-export default function AdminNav({ active }: { active: string }) {
-  const queue = getModerationQueue().length;
-  const pendingPay = getPayments().filter((p) => p.status === "pending").length;
+export default async function AdminNav({ active }: { active: string }) {
+  const queue = (await getModerationQueue()).length;
+  const pendingPay = (await getPayments()).filter((p) => p.status === "pending").length;
 
   const items = [
     { key: "home", href: "/admin", label: "ภาพรวม" },

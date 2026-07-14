@@ -16,9 +16,11 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 export default async function AdminHome() {
-  const a = getAnalytics();
-  const sellers = getSellers();
-  const logs = getAdminLogs();
+  const [a, sellers, logs] = await Promise.all([
+    getAnalytics(),
+    getSellers(),
+    getAdminLogs(),
+  ]);
 
   return (
     <div>

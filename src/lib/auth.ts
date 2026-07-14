@@ -15,7 +15,7 @@ export async function getCurrentSeller(): Promise<Seller | null> {
   const jar = await cookies();
   const id = jar.get(SESSION_COOKIE)?.value;
   if (!id) return null;
-  return getSeller(id) ?? null;
+  return (await getSeller(id)) ?? null;
 }
 
 export async function isBuyerLoggedIn(): Promise<boolean> {

@@ -1,6 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getListing, getCategory, getArea, getSeller } from "@/lib/data";
+import {
+  getListing,
+  getCategory,
+  getArea,
+  getSeller,
+  getSellerActiveCount,
+} from "@/lib/data";
 import { formatPrice, timeAgo } from "@/lib/format";
 import { isBuyerLoggedIn } from "@/lib/auth";
 import TrustBadge from "@/components/TrustBadge";
@@ -15,14 +21,17 @@ export default async function ListingDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const listing = getListing(id);
+  const listing = await getListing(id);
   if (!listing || listing.status === "hidden") notFound();
 
-  const cat = getCategory(listing.categoryId);
-  const area = getArea(listing.areaId);
-  const seller = getSeller(listing.sellerId);
-  const buyerLoggedIn = await isBuyerLoggedIn();
+  const [cat, area, seller, buyerLoggedIn] = await Promise.all([
+    getCategory(listing.categoryId),
+    getArea(listing.areaId),
+    getSeller(listing.sellerId),
+    isBuyerLoggedIn(),
+  ]);
   if (!seller) notFound();
+  const activeCount = await getSellerActiveCount(seller.id);
 
   const lineContact = `@${seller.displayName.replace(/\s/g, "").slice(0, 10)}`;
 
@@ -70,7 +79,7 @@ export default async function ListingDetail({
 
           <div className="mt-5 card p-3">
             <div className="mb-2 text-sm font-medium text-slate-700">ผู้ขาย: {seller.displayName}</div>
-            <TrustBadge seller={seller} />
+            <TrustBadge seller={seller} activeCount={activeCount} />
           </div>
 
           <div className="mt-5">
@@ -85,9 +94,7 @@ export default async function ListingDetail({
           </div>
 
           {cat &&
-            ["cat-veg", "cat-fruit", "cat-meat", "cat-seafood", "cat-cooked"].includes(
-              cat.id
-            ) && (
+            ["cat-veg", "cat-fruit", "cat-meat", "cat-seafood", "cat-cooked"].includes(cat.id) && (
               <p className="mt-3 rounded-lg bg-amber-50 p-2 text-center text-[11px] text-amber-600">
                 ⚠️ สินค้าอาหาร: ผู้ขายเป็นผู้รับผิดชอบคุณภาพและความปลอดภัยอาหาร
               </p>

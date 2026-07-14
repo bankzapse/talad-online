@@ -15,7 +15,7 @@ export default async function Membership({
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
   const sp = await searchParams;
-  const packages = getPackages(true);
+  const packages = await getPackages(true);
   const dleft = daysLeft(seller.membershipExpiresAt);
 
   return (

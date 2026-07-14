@@ -157,3 +157,16 @@ insert into packages (id,name,days,price,active) values
   ('pkg-6m','6 เดือน',180,539,true),
   ('pkg-1y','รายปี',365,999,true)
 on conflict (id) do nothing;
+
+-- =============================================================================
+-- Storage bucket สำหรับรูปประกาศ (public read)
+-- =============================================================================
+insert into storage.buckets (id, name, public)
+values ('listings','listings', true)
+on conflict (id) do nothing;
+
+-- อนุญาตอ่าน public + เขียนผ่าน service role (แอปอัปโหลดฝั่ง server)
+create policy "public read listing images"
+  on storage.objects for select
+  using (bucket_id = 'listings');
+

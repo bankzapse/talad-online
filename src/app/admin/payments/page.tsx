@@ -1,5 +1,5 @@
 import AdminNav from "@/components/AdminNav";
-import { getPayments, getSeller, getPackages } from "@/lib/data";
+import { getPayments, getSellers, getPackages } from "@/lib/data";
 import { formatBaht, timeAgo, daysLeft } from "@/lib/format";
 import {
   verifyPaymentAction,
@@ -16,11 +16,12 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 export default async function Payments() {
-  const payments = getPayments();
-  const packages = getPackages();
-  const sellers = new Map(
-    payments.map((p) => [p.sellerId, getSeller(p.sellerId)])
-  );
+  const [payments, packages, allSellers] = await Promise.all([
+    getPayments(),
+    getPackages(),
+    getSellers(),
+  ]);
+  const sellers = new Map(allSellers.map((s) => [s.id, s]));
 
   return (
     <div>

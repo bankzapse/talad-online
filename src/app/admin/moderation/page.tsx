@@ -1,12 +1,18 @@
 import AdminNav from "@/components/AdminNav";
-import { getModerationQueue, getSeller, getCategory } from "@/lib/data";
+import { getModerationQueue, getSellers, getCategories } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
 import { moderateAction } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function Moderation() {
-  const queue = getModerationQueue();
+  const [queue, sellers, categories] = await Promise.all([
+    getModerationQueue(),
+    getSellers(),
+    getCategories(),
+  ]);
+  const sellerMap = new Map(sellers.map((s) => [s.id, s]));
+  const catMap = new Map(categories.map((c) => [c.id, c]));
 
   return (
     <div>
@@ -22,8 +28,8 @@ export default async function Moderation() {
       ) : (
         <div className="space-y-2">
           {queue.map((l) => {
-            const seller = getSeller(l.sellerId);
-            const cat = getCategory(l.categoryId);
+            const seller = sellerMap.get(l.sellerId);
+            const cat = catMap.get(l.categoryId);
             const approve = moderateAction.bind(null, l.id, "approve");
             const remove = moderateAction.bind(null, l.id, "remove");
             return (
