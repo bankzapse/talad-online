@@ -88,6 +88,15 @@ create table if not exists reports (
   created_at timestamptz not null default now()
 );
 
+-- ---------- settings (key-value config เช่น บัญชีรับเงิน) ----------
+create table if not exists settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table settings enable row level security;
+-- ไม่มี policy public → เข้าถึงได้เฉพาะ service_role (ฝั่ง server)
+
 -- ---------- admin logs ----------
 create table if not exists admin_logs (
   id uuid primary key default gen_random_uuid(),

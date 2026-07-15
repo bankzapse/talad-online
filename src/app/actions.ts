@@ -20,6 +20,7 @@ import {
   deleteCategory,
   getPayment,
   resubmitPaymentSlip,
+  updatePaymentSettings,
 } from "@/lib/data";
 import type { Unit } from "@/lib/types";
 import { safeNext } from "@/lib/url";
@@ -118,12 +119,17 @@ export async function payAction(_sellerId: string, formData: FormData) {
   if (!packageId) redirect("/sell/membership?error=nopkg");
   if (!slipPath) redirect("/sell/membership?error=noslip");
 
-  const payment = await createPayment(seller!.id, packageId, slipPath);
-
-  // ถ้าตั้งค่า API ตรวจสลิป (SLIP_VERIFY_*) → ยืนยันอัตโนมัติเมื่อยอดตรง
   const pkg = (await getPackages(true)).find((p) => p.id === packageId);
+  // ยอดรวมเลขลงท้าย (จาก PackagePicker) — ตรวจว่าจำนวนเต็มตรงกับราคาแพ็ก
+  const payAmount = Number(formData.get("payAmount") || 0);
+  const amount =
+    pkg && payAmount >= pkg.price && payAmount < pkg.price + 1 ? payAmount : pkg?.price;
+
+  const payment = await createPayment(seller!.id, packageId, slipPath, amount);
+
+  // ถ้าตั้งค่า API ตรวจสลิป (SLIP_VERIFY_*) → ยืนยันอัตโนมัติเมื่อยอดตรง (รวมเลขลงท้าย)
   if (pkg) {
-    const result = await verifySlipAmount(slipPath, pkg.price);
+    const result = await verifySlipAmount(slipPath, amount ?? pkg.price);
     if (result?.verified) await verifyPayment(payment.id);
   }
   redirect("/sell/membership?paid=1");
@@ -181,6 +187,17 @@ export async function updateCategoryAction(id: string, formData: FormData) {
 export async function deleteCategoryAction(id: string) {
   const ok = await deleteCategory(id);
   redirect(ok ? "/admin/categories" : "/admin/categories?error=inuse");
+}
+
+export async function savePaymentSettingsAction(formData: FormData) {
+  const ok = await updatePaymentSettings({
+    bankShortName: String(formData.get("bankShortName") || "").trim().slice(0, 60),
+    bankBranch: String(formData.get("bankBranch") || "").trim().slice(0, 80),
+    accountNo: String(formData.get("accountNo") || "").trim().slice(0, 40),
+    accountName: String(formData.get("accountName") || "").trim().slice(0, 120),
+    promptpayId: String(formData.get("promptpayId") || "").trim().slice(0, 20),
+  });
+  redirect(ok ? "/admin/settings?saved=1" : "/admin/settings?error=migrate");
 }
 
 export async function savePackageAction(formData: FormData) {

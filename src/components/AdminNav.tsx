@@ -12,6 +12,7 @@ export default async function AdminNav({ active }: { active: string }) {
     { key: "payments", href: "/admin/payments", label: `การชำระเงิน${pendingPay ? ` (${pendingPay})` : ""}` },
     { key: "reports", href: "/admin/reports", label: "สรุปรายได้" },
     { key: "packages", href: "/admin/packages", label: "แพ็กสมาชิก" },
+    { key: "settings", href: "/admin/settings", label: "ตั้งค่าบัญชี" },
   ];
 
   return (

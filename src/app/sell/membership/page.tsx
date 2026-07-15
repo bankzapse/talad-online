@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
-import { getPackages, getSellerPayments } from "@/lib/data";
-import { daysLeft, formatBaht, timeAgo } from "@/lib/format";
+import { getPackages, getSellerPayments, getPaymentSettings } from "@/lib/data";
+import { daysLeft, formatBahtExact, timeAgo } from "@/lib/format";
 import { startTrialAction, payAction, resubmitSlipAction } from "@/app/actions";
 import SlipUpload from "@/components/SlipUpload";
 import SubmitButton from "@/components/SubmitButton";
-import { COMPANY } from "@/lib/company";
+import PackagePicker from "@/components/PackagePicker";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +18,11 @@ export default async function Membership({
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
   const sp = await searchParams;
-  const [packages, allPackages, payments] = await Promise.all([
+  const [packages, allPackages, payments, bank] = await Promise.all([
     getPackages(true),
     getPackages(),
     getSellerPayments(seller.id),
+    getPaymentSettings(),
   ]);
   const pkgMap = new Map(allPackages.map((p) => [p.id, p]));
   const dleft = daysLeft(seller.membershipExpiresAt);
@@ -78,12 +79,15 @@ export default async function Membership({
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start">
           <div className="w-full rounded-xl border border-brand/20 bg-brand-soft/50 p-4 text-sm sm:w-64">
             <div className="text-xs font-medium text-slate-500">โอนเข้าบัญชี</div>
-            <div className="mt-1 font-bold text-brand-dark">{COMPANY.bank.shortName}</div>
-            <div className="text-xs text-slate-500">{COMPANY.bank.branch}</div>
+            <div className="mt-1 font-bold text-brand-dark">{bank.bankShortName}</div>
+            <div className="text-xs text-slate-500">{bank.bankBranch}</div>
             <div className="mt-2 text-lg font-extrabold tracking-wide text-ink">
-              {COMPANY.bank.accountNo}
+              {bank.accountNo}
             </div>
-            <div className="text-xs text-slate-500">{COMPANY.bank.accountName}</div>
+            <div className="text-xs text-slate-500">{bank.accountName}</div>
+            {bank.promptpayId && (
+              <div className="mt-1 text-xs text-slate-500">พร้อมเพย์: {bank.promptpayId}</div>
+            )}
           </div>
           <div className="flex-1 text-sm text-slate-600">
             <p className="font-medium">วิธีจ่าย</p>
@@ -97,29 +101,14 @@ export default async function Membership({
         </div>
 
         <div className="mt-4">
-          <div className="mb-2 text-xs font-medium text-slate-500">เลือกแพ็ก</div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {packages.map((p, i) => {
-              const perMonth = Math.round((p.price / p.days) * 30);
-              return (
-                <label
-                  key={p.id}
-                  className="card cursor-pointer p-3 text-center has-[:checked]:border-brand has-[:checked]:bg-brand-light"
-                >
-                  <input
-                    type="radio"
-                    name="packageId"
-                    value={p.id}
-                    defaultChecked={i === 1}
-                    className="sr-only"
-                  />
-                  <div className="text-xs font-medium text-slate-700">{p.name}</div>
-                  <div className="text-lg font-bold text-brand-dark">{p.price}฿</div>
-                  <div className="text-[10px] text-slate-400">~{perMonth}฿/ด.</div>
-                </label>
-              );
-            })}
-          </div>
+          <PackagePicker
+            packages={packages.map((p) => ({
+              id: p.id,
+              name: p.name,
+              price: p.price,
+              days: p.days,
+            }))}
+          />
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -148,7 +137,7 @@ export default async function Membership({
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium">
-                        แพ็ก {pkg?.name ?? "-"} · {formatBaht(p.amount)}
+                        แพ็ก {pkg?.name ?? "-"} · {formatBahtExact(p.amount)}
                       </div>
                       <div className="text-xs text-slate-400">{timeAgo(p.createdAt)}</div>
                     </div>

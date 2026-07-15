@@ -28,6 +28,7 @@ interface DB {
   // analytics + rate-limit
   contactEvents: { listingId: string; key: string; at: number }[];
   counters: { listingsCreated: number; contactClicked: number; trialStarted: number; paymentSuccess: number };
+  settings: Record<string, Record<string, unknown>>;
 }
 
 declare global {
@@ -52,6 +53,7 @@ function seed(): DB {
       trialStarted: SELLERS.length,
       paymentSuccess: 2,
     },
+    settings: {},
   };
 }
 

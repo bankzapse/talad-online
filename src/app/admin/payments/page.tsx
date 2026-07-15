@@ -1,7 +1,7 @@
 import AdminNav from "@/components/AdminNav";
 import { getPayments, getSellers, getPackages } from "@/lib/data";
 import { signSlipUrl } from "@/lib/slip";
-import { formatBaht, timeAgo, daysLeft } from "@/lib/format";
+import { formatBaht, formatBahtExact, timeAgo, daysLeft } from "@/lib/format";
 import {
   verifyPaymentAction,
   rejectPaymentAction,
@@ -58,7 +58,7 @@ export default async function Payments() {
                     {seller?.displayName} · {pkg?.name}
                   </div>
                   <div className="text-xs text-slate-400">
-                    {formatBaht(p.amount)} · {timeAgo(p.createdAt)} · สลิป:{" "}
+                    {formatBahtExact(p.amount)} · {timeAgo(p.createdAt)} · สลิป:{" "}
                     {slipUrls.get(p.id) ? (
                       <a
                         href={slipUrls.get(p.id)!}

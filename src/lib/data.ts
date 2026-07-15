@@ -10,6 +10,54 @@ import type {
 import { checkBlocklist } from "./blocklist";
 import { getServiceClient, isSupabaseReady } from "./supabase/admin";
 import { rowToSeller, rowToListing, rowToPayment, rowToPackage } from "./mappers";
+import { COMPANY } from "./company";
+
+// ---------- ตั้งค่าบัญชีรับเงิน (admin แก้ได้) ----------
+export interface PaymentSettings {
+  bankShortName: string;
+  bankBranch: string;
+  accountNo: string;
+  accountName: string;
+  promptpayId: string;
+}
+
+function defaultPaymentSettings(): PaymentSettings {
+  return {
+    bankShortName: COMPANY.bank.shortName,
+    bankBranch: COMPANY.bank.branch,
+    accountNo: COMPANY.bank.accountNo,
+    accountName: COMPANY.bank.accountName,
+    promptpayId: "",
+  };
+}
+
+export async function getPaymentSettings(): Promise<PaymentSettings> {
+  const def = defaultPaymentSettings();
+  if (isSupabaseReady()) {
+    try {
+      const { data } = await sb().from("settings").select("value").eq("key", "payment").maybeSingle();
+      if (data?.value) return { ...def, ...(data.value as Partial<PaymentSettings>) };
+    } catch {
+      // ตาราง settings ยังไม่ถูกสร้าง → ใช้ค่าเริ่มต้น
+    }
+    return def;
+  }
+  const s = db.settings["payment"] as Partial<PaymentSettings> | undefined;
+  return { ...def, ...(s ?? {}) };
+}
+
+export async function updatePaymentSettings(s: PaymentSettings): Promise<boolean> {
+  if (isSupabaseReady()) {
+    const { error } = await sb()
+      .from("settings")
+      .upsert({ key: "payment", value: s, updated_at: new Date().toISOString() });
+    if (error) return false; // ตาราง settings ยังไม่ถูกสร้าง → ต้องรัน schema.sql ล่าสุด
+    await logAdmin("แก้ไขบัญชีรับเงิน", `${s.bankShortName} ${s.accountNo}`);
+    return true;
+  }
+  db.settings["payment"] = s as unknown as Record<string, unknown>;
+  return true;
+}
 
 // -----------------------------------------------------------------------------
 // Data layer (async) — สองแบ็กเอนด์:
@@ -405,17 +453,19 @@ export async function startTrial(sellerId: string): Promise<void> {
 export async function createPayment(
   sellerId: string,
   packageId: string,
-  slipUrl: string | null
+  slipUrl: string | null,
+  amountOverride?: number // ยอดรวมเลขลงท้าย (satang) เพื่อจับคู่สลิป
 ): Promise<Payment> {
   const pkgs = await getPackages();
   const pkg = pkgs.find((p) => p.id === packageId);
+  const amount = amountOverride && amountOverride > 0 ? amountOverride : pkg?.price ?? 0;
   if (isSupabaseReady()) {
     const { data } = await sb()
       .from("payments")
       .insert({
         seller_id: sellerId,
         package_id: packageId,
-        amount: pkg?.price ?? 0,
+        amount,
         slip_url: slipUrl,
         status: "pending",
       })
@@ -427,7 +477,7 @@ export async function createPayment(
     id: `pay-${Math.random().toString(36).slice(2, 8)}`,
     sellerId,
     packageId,
-    amount: pkg?.price ?? 0,
+    amount,
     slipUrl,
     status: "pending",
     createdAt: new Date().toISOString(),

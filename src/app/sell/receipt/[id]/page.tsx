@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
-import { getPayment, getPackages } from "@/lib/data";
-import { formatBaht } from "@/lib/format";
+import { getPayment, getPackages, getPaymentSettings } from "@/lib/data";
+import { formatBahtExact } from "@/lib/format";
 import { COMPANY } from "@/lib/company";
 import PrintButton from "@/components/PrintButton";
 
@@ -23,7 +23,8 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   if (!pay || pay.sellerId !== seller.id) notFound();
   if (pay.status !== "verified") redirect("/sell/membership");
 
-  const pkg = (await getPackages()).find((p) => p.id === pay.packageId);
+  const [pkgs, bank] = await Promise.all([getPackages(), getPaymentSettings()]);
+  const pkg = pkgs.find((p) => p.id === pay.packageId);
   const date = pay.verifiedAt ? new Date(pay.verifiedAt) : new Date(pay.createdAt);
 
   return (
@@ -85,22 +86,21 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                 ค่าสมาชิกผู้ขาย — แพ็ก {pkg?.name ?? "-"}
                 {pkg ? ` (${pkg.days} วัน)` : ""}
               </td>
-              <td className="py-3 text-right">{formatBaht(pay.amount)}</td>
+              <td className="py-3 text-right">{formatBahtExact(pay.amount)}</td>
             </tr>
           </tbody>
           <tfoot>
             <tr>
               <td className="pt-3 text-right font-bold">รวมทั้งสิ้น</td>
               <td className="pt-3 text-right text-lg font-extrabold text-brand-dark">
-                {formatBaht(pay.amount)}
+                {formatBahtExact(pay.amount)}
               </td>
             </tr>
           </tfoot>
         </table>
 
         <div className="mt-6 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-          ชำระโดยการโอนเข้าบัญชี {COMPANY.bank.shortName} {COMPANY.bank.accountNo} · สถานะ:
-          ยืนยันแล้ว ✓
+          ชำระโดยการโอนเข้าบัญชี {bank.bankShortName} {bank.accountNo} · สถานะ: ยืนยันแล้ว ✓
         </div>
 
         <p className="mt-4 text-center text-[11px] text-slate-400">

@@ -15,6 +15,17 @@ export function formatBaht(n: number): string {
   }).format(n);
 }
 
+// แสดงทศนิยม (เลขลงท้าย/สตางค์) เมื่อยอดไม่เต็มบาท — ใช้กับยอดที่ต้องจับคู่สลิป
+export function formatBahtExact(n: number): string {
+  const hasDecimals = Math.round(n * 100) % 100 !== 0;
+  return new Intl.NumberFormat("th-TH", {
+    style: "currency",
+    currency: "THB",
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
 // "เข้าร่วมเมื่อ" — แปลงเป็นข้อความไทยแบบสั้น
 export function joinedLabel(iso: string): string {
   const d = new Date(iso);
