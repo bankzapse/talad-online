@@ -19,6 +19,7 @@ import {
 import type { Unit } from "@/lib/types";
 import { safeNext } from "@/lib/url";
 import { isLineLoginConfigured } from "@/lib/line-login";
+import { verifySlipAmount } from "@/lib/slip";
 
 // ---------- auth (LINE Login stub) ----------
 // เมื่อ LINE Login เปิดใช้จริงแล้ว → ปิด demo login ทั้งหมด (บังคับผ่าน LINE เท่านั้น)
@@ -104,11 +105,22 @@ export async function startTrialAction(_sellerId: string) {
   redirect("/sell/membership");
 }
 
-export async function payAction(_sellerId: string, packageId: string) {
+export async function payAction(_sellerId: string, formData: FormData) {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
-  // จำลองอัปสลิป → สร้าง payment pending รอ admin/ระบบยืนยัน
-  await createPayment(seller!.id, packageId, "demo-slip-uploaded");
+  const packageId = String(formData.get("packageId") || "");
+  const slipPath = String(formData.get("slipPath") || "");
+  if (!packageId) redirect("/sell/membership?error=nopkg");
+  if (!slipPath) redirect("/sell/membership?error=noslip");
+
+  const payment = await createPayment(seller!.id, packageId, slipPath);
+
+  // ถ้าตั้งค่า API ตรวจสลิป (SLIP_VERIFY_*) → ยืนยันอัตโนมัติเมื่อยอดตรง
+  const pkg = (await getPackages(true)).find((p) => p.id === packageId);
+  if (pkg) {
+    const result = await verifySlipAmount(slipPath, pkg.price);
+    if (result?.verified) await verifyPayment(payment.id);
+  }
   redirect("/sell/membership?paid=1");
 }
 

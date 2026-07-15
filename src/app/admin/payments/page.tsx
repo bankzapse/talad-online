@@ -1,5 +1,6 @@
 import AdminNav from "@/components/AdminNav";
 import { getPayments, getSellers, getPackages } from "@/lib/data";
+import { signSlipUrl } from "@/lib/slip";
 import { formatBaht, timeAgo, daysLeft } from "@/lib/format";
 import {
   verifyPaymentAction,
@@ -22,6 +23,11 @@ export default async function Payments() {
     getSellers(),
   ]);
   const sellers = new Map(allSellers.map((s) => [s.id, s]));
+  const slipUrls = new Map(
+    await Promise.all(
+      payments.map(async (p) => [p.id, await signSlipUrl(p.slipUrl)] as const)
+    )
+  );
 
   return (
     <div>
@@ -52,7 +58,20 @@ export default async function Payments() {
                   </div>
                   <div className="text-xs text-slate-400">
                     {formatBaht(p.amount)} · {timeAgo(p.createdAt)} · สลิป:{" "}
-                    {p.slipUrl ? "อัปแล้ว ✓" : "—"}
+                    {slipUrls.get(p.id) ? (
+                      <a
+                        href={slipUrls.get(p.id)!}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-brand underline"
+                      >
+                        ดูสลิป
+                      </a>
+                    ) : p.slipUrl ? (
+                      "แนบแล้ว"
+                    ) : (
+                      "—"
+                    )}
                   </div>
                 </div>
                 <span className={`chip ${st.cls}`}>{st.label}</span>
