@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { exchangeCodeForToken, getLineProfile } from "@/lib/line-login";
 import { upsertSellerFromLine } from "@/lib/data";
 import { SESSION_COOKIE, BUYER_COOKIE } from "@/lib/auth";
+import { safeNext } from "@/lib/url";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -39,5 +40,5 @@ export async function GET(req: Request) {
     jar.set(SESSION_COOKIE, seller.id, opts);
   }
 
-  return NextResponse.redirect(new URL(saved.next || "/", origin));
+  return NextResponse.redirect(new URL(safeNext(saved.next), origin));
 }

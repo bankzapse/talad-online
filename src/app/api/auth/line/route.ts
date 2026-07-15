@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { isLineLoginConfigured, buildAuthUrl } from "@/lib/line-login";
+import { safeNext } from "@/lib/url";
 
 // เริ่ม LINE Login — /api/auth/line?next=/sell  (หรือ &buyer=1 สำหรับผู้ซื้อ)
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const next = url.searchParams.get("next") || "/";
+  const next = safeNext(url.searchParams.get("next"));
   const buyer = url.searchParams.get("buyer") === "1";
 
   if (!isLineLoginConfigured()) {

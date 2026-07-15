@@ -2,10 +2,11 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE, BUYER_COOKIE } from "@/lib/auth";
+import { SESSION_COOKIE, BUYER_COOKIE, getCurrentSeller } from "@/lib/auth";
 import {
   createListing,
   updateListingStatus,
+  getListing,
   startTrial,
   createPayment,
   verifyPayment,
@@ -16,15 +17,20 @@ import {
   getPackages,
 } from "@/lib/data";
 import type { Unit } from "@/lib/types";
+import { safeNext } from "@/lib/url";
+import { isLineLoginConfigured } from "@/lib/line-login";
 
 // ---------- auth (LINE Login stub) ----------
+// เมื่อ LINE Login เปิดใช้จริงแล้ว → ปิด demo login ทั้งหมด (บังคับผ่าน LINE เท่านั้น)
 export async function loginAsSeller(sellerId: string, next?: string) {
+  if (isLineLoginConfigured()) redirect("/login");
   const jar = await cookies();
   jar.set(SESSION_COOKIE, sellerId, { httpOnly: true, path: "/", maxAge: 60 * 60 * 24 * 30 });
-  redirect(next || "/sell");
+  redirect(safeNext(next, "/sell"));
 }
 
 export async function loginAsBuyer(next?: string) {
+  if (isLineLoginConfigured()) redirect("/login?buyer=1");
   const jar = await cookies();
   // ผูกกับ id สุ่ม (จริงคือ LINE userId) — ใช้เป็น key rate-limit ปุ่มติดต่อ
   jar.set(BUYER_COOKIE, `buyer-${Math.random().toString(36).slice(2, 10)}`, {
@@ -32,7 +38,7 @@ export async function loginAsBuyer(next?: string) {
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });
-  redirect(next || "/");
+  redirect(safeNext(next, "/"));
 }
 
 export async function logout() {
@@ -42,40 +48,67 @@ export async function logout() {
 }
 
 // ---------- listings ----------
-export async function createListingAction(sellerId: string, formData: FormData) {
+// หมายเหตุความปลอดภัย: ทุก action ตรวจ seller จาก session จริง (ไม่เชื่อ id ที่ส่งมา)
+// และตรวจสิทธิ์เจ้าของก่อนแก้ข้อมูล (กัน IDOR)
+export async function createListingAction(_sellerId: string, formData: FormData) {
+  const seller = await getCurrentSeller();
+  if (!seller || seller.blocked) redirect("/login");
+
   let images: string[] = [];
   try {
-    images = JSON.parse(String(formData.get("images") || "[]"));
+    const parsed = JSON.parse(String(formData.get("images") || "[]"));
+    if (Array.isArray(parsed)) images = parsed.filter((x) => typeof x === "string").slice(0, 8);
   } catch {
     images = [];
   }
+
+  const title = String(formData.get("title") || "").trim().slice(0, 120);
+  const description = String(formData.get("description") || "").trim().slice(0, 2000);
+  const price = Number(formData.get("price") || 0);
+  const categoryId = String(formData.get("categoryId") || "");
+  const areaId = String(formData.get("areaId") || "");
+
+  // validation
+  if (!title || !categoryId || !areaId) redirect("/sell/new?error=required");
+  if (!Number.isFinite(price) || price < 0 || price > 100_000_000)
+    redirect("/sell/new?error=price");
+
   await createListing({
-    sellerId,
-    title: String(formData.get("title") || "").trim(),
-    description: String(formData.get("description") || "").trim(),
-    price: Number(formData.get("price") || 0),
+    sellerId: seller!.id,
+    title,
+    description,
+    price,
     unit: String(formData.get("unit") || "ชิ้น") as Unit,
-    categoryId: String(formData.get("categoryId") || ""),
-    areaId: String(formData.get("areaId") || ""),
+    categoryId,
+    areaId,
     images,
   });
   redirect("/sell");
 }
 
 export async function setListingStatusAction(id: string, status: "active" | "sold" | "hidden") {
+  const seller = await getCurrentSeller();
+  if (!seller) redirect("/login");
+  const listing = await getListing(id);
+  // ตรวจสิทธิ์เจ้าของ — กันแก้ประกาศคนอื่น (IDOR)
+  if (!listing || listing.sellerId !== seller!.id) redirect("/sell");
   await updateListingStatus(id, status);
   redirect("/sell");
 }
 
 // ---------- membership ----------
-export async function startTrialAction(sellerId: string) {
-  await startTrial(sellerId);
+export async function startTrialAction(_sellerId: string) {
+  const seller = await getCurrentSeller();
+  if (!seller) redirect("/login");
+  await startTrial(seller!.id);
   redirect("/sell/membership");
 }
 
-export async function payAction(sellerId: string, packageId: string) {
+export async function payAction(_sellerId: string, packageId: string) {
+  const seller = await getCurrentSeller();
+  if (!seller) redirect("/login");
   // จำลองอัปสลิป → สร้าง payment pending รอ admin/ระบบยืนยัน
-  await createPayment(sellerId, packageId, "demo-slip-uploaded");
+  await createPayment(seller!.id, packageId, "demo-slip-uploaded");
   redirect("/sell/membership?paid=1");
 }
 

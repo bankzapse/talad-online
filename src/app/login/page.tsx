@@ -92,6 +92,11 @@ export default async function LoginPage({
           การสมัครจริงจะบังคับ <b>ยืนยันเบอร์โทรด้วย OTP</b> (1 เบอร์ = 1 สิทธิ์ทดลองฟรี) และ
           &ldquo;เพิ่มเพื่อน&rdquo; LINE OA เพื่อรับแจ้งเตือน
         </p>
+        <p className="mt-2 text-center text-[11px] text-slate-400">
+          การเข้าสู่ระบบถือว่ายอมรับ{" "}
+          <a href="/terms" className="underline">ข้อตกลงการใช้งาน</a> และ{" "}
+          <a href="/privacy" className="underline">นโยบายความเป็นส่วนตัว</a>
+        </p>
       </div>
     </div>
   );

@@ -20,6 +20,9 @@ export async function POST(req: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "no_file" }, { status: 400 });
   }
+  if (!file.type.startsWith("image/")) {
+    return NextResponse.json({ error: "not_image" }, { status: 415 });
+  }
   if (file.size > 5 * 1024 * 1024) {
     return NextResponse.json({ error: "too_large" }, { status: 413 });
   }

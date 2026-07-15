@@ -3,9 +3,9 @@ import { reportListing } from "@/lib/data";
 
 export async function POST(req: Request) {
   const { listingId, reason } = await req.json();
-  if (!listingId || !reason) {
+  if (!listingId || typeof listingId !== "string" || !reason || typeof reason !== "string") {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
-  await reportListing(listingId, reason);
+  await reportListing(listingId, reason.slice(0, 200));
   return NextResponse.json({ ok: true });
 }
