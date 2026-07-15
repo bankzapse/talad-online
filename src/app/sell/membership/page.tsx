@@ -7,6 +7,7 @@ import { startTrialAction, payAction, resubmitSlipAction } from "@/app/actions";
 import SlipUpload from "@/components/SlipUpload";
 import SubmitButton from "@/components/SubmitButton";
 import PackagePicker from "@/components/PackagePicker";
+import { promptPayQrDataUrl } from "@/lib/promptpay";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,24 @@ export default async function Membership({
   const pkgMap = new Map(allPackages.map((p) => [p.id, p]));
   const dleft = daysLeft(seller.membershipExpiresAt);
   const pay = payAction.bind(null, seller.id);
+
+  // เลขลงท้าย (สตางค์) เป็นรหัสอ้างอิง + สร้าง PromptPay QR ต่อยอด (ถ้าตั้ง PromptPay ID)
+  const satang = 1 + Math.floor(Math.random() * 99);
+  const ss = String(satang).padStart(2, "0");
+  const pickerPackages = await Promise.all(
+    packages.map(async (p) => {
+      const total = p.price + satang / 100;
+      return {
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        days: p.days,
+        amount: total.toFixed(2),
+        ss,
+        qr: bank.promptpayId ? await promptPayQrDataUrl(bank.promptpayId, total) : null,
+      };
+    })
+  );
 
   const PAY_STATUS: Record<string, { label: string; cls: string }> = {
     pending: { label: "รอตรวจสอบ", cls: "border-amber-200 bg-amber-50 text-amber-600" },
@@ -101,14 +120,7 @@ export default async function Membership({
         </div>
 
         <div className="mt-4">
-          <PackagePicker
-            packages={packages.map((p) => ({
-              id: p.id,
-              name: p.name,
-              price: p.price,
-              days: p.days,
-            }))}
-          />
+          <PackagePicker packages={pickerPackages} />
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">

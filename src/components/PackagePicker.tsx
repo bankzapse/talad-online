@@ -2,10 +2,17 @@
 
 import { useState } from "react";
 
-type Pkg = { id: string; name: string; price: number; days: number };
+type Pkg = {
+  id: string;
+  name: string;
+  price: number;
+  days: number;
+  amount: string; // ยอดที่ต้องโอน (รวมเลขลงท้าย) เช่น "99.37"
+  ss: string; // เลขลงท้าย 2 หลัก
+  qr: string | null; // PromptPay QR (data URL) ต่อยอดนั้น
+};
 
-// เลือกแพ็ก + สร้าง "เลขลงท้าย (สตางค์)" เป็นรหัสอ้างอิง กันยอดโอนชนกัน
-// ยอดที่ต้องโอน = ราคาแพ็ก + .{satang}  เช่น 99.37 → admin/ระบบจับคู่สลิปได้แม่น
+// เลือกแพ็ก + แสดงยอดโอน (รวมรหัสอ้างอิงเลขลงท้าย) + PromptPay QR ถ้ามี
 export default function PackagePicker({
   packages,
   defaultIndex = 1,
@@ -13,15 +20,8 @@ export default function PackagePicker({
   packages: Pkg[];
   defaultIndex?: number;
 }) {
-  // สร้างเลขลงท้าย 01–99 ครั้งเดียวต่อการเปิดหน้า (ต่อ index เพื่อไม่สุ่มซ้ำใน render)
-  const [satang] = useState(() => 1 + Math.floor(Math.random() * 99));
-  const [sel, setSel] = useState(
-    packages[defaultIndex]?.id ?? packages[0]?.id ?? ""
-  );
-
+  const [sel, setSel] = useState(packages[defaultIndex]?.id ?? packages[0]?.id ?? "");
   const selected = packages.find((p) => p.id === sel);
-  const ss = String(satang).padStart(2, "0");
-  const amount = selected ? (selected.price + satang / 100).toFixed(2) : "";
 
   return (
     <div>
@@ -48,14 +48,29 @@ export default function PackagePicker({
       </div>
 
       <input type="hidden" name="packageId" value={sel} />
-      <input type="hidden" name="payAmount" value={amount} />
+      <input type="hidden" name="payAmount" value={selected?.amount ?? ""} />
 
       {selected && (
-        <div className="mt-3 rounded-xl border border-brand/30 bg-brand-soft p-3 text-center">
-          <div className="text-xs text-slate-500">ยอดที่ต้องโอน (โอนให้ตรงเป๊ะ)</div>
-          <div className="text-2xl font-extrabold text-brand-dark">{amount} บาท</div>
-          <div className="text-xs text-amber-600">
-            ⚠️ เลขลงท้าย <b>.{ss}</b> คือรหัสยืนยันอัตโนมัติ — อย่าปัดเศษ
+        <div className="mt-3 flex flex-col items-center gap-3 rounded-xl border border-brand/30 bg-brand-soft p-4 sm:flex-row sm:items-center sm:justify-center">
+          {selected.qr && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={selected.qr}
+              alt="PromptPay QR"
+              className="h-40 w-40 rounded-lg bg-white p-1 shadow-soft"
+            />
+          )}
+          <div className="text-center sm:text-left">
+            <div className="text-xs text-slate-500">ยอดที่ต้องโอน (โอนให้ตรงเป๊ะ)</div>
+            <div className="text-2xl font-extrabold text-brand-dark">{selected.amount} บาท</div>
+            <div className="text-xs text-amber-600">
+              ⚠️ เลขลงท้าย <b>.{selected.ss}</b> คือรหัสยืนยันอัตโนมัติ — อย่าปัดเศษ
+            </div>
+            {selected.qr && (
+              <div className="mt-1 text-[11px] text-slate-400">
+                สแกน QR ด้วยแอปธนาคาร ยอดจะถูกกรอกให้อัตโนมัติ
+              </div>
+            )}
           </div>
         </div>
       )}
