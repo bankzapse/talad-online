@@ -163,10 +163,18 @@ export interface ListingQuery {
 }
 
 export async function queryListings(opts: ListingQuery = {}): Promise<Listing[]> {
+  // หน้า public: โชว์เฉพาะประกาศของผู้ขายที่สมาชิกยัง active + ไม่ถูกแบน
+  const publicView = !opts.status && !opts.includeHidden;
+  const nowIso = new Date().toISOString();
+
   if (isSupabaseReady()) {
-    let q = sb().from("listings").select("*");
+    const sel = publicView ? "*, sellers!inner(membership_expires_at,blocked)" : "*";
+    let q = sb().from("listings").select(sel);
     if (opts.status) q = q.eq("status", opts.status);
     else if (!opts.includeHidden) q = q.eq("status", "active");
+    if (publicView) {
+      q = q.gt("sellers.membership_expires_at", nowIso).eq("sellers.blocked", false);
+    }
     if (opts.categoryId) q = q.eq("category_id", opts.categoryId);
     if (opts.areaId) q = q.eq("area_id", opts.areaId);
     if (opts.q) q = q.or(`title.ilike.%${opts.q}%,description.ilike.%${opts.q}%`);
@@ -174,12 +182,25 @@ export async function queryListings(opts: ListingQuery = {}): Promise<Listing[]>
     else if (opts.sort === "price_desc") q = q.order("price", { ascending: false });
     else q = q.order("created_at", { ascending: false });
     const { data } = await q;
-    return (data ?? []).map(rowToListing);
+    const rows = (data ?? []) as unknown as Record<string, unknown>[];
+    return rows.map(rowToListing);
   }
 
   let rows = db.listings.slice();
   if (opts.status) rows = rows.filter((l) => l.status === opts.status);
   else if (!opts.includeHidden) rows = rows.filter((l) => l.status === "active");
+  if (publicView) {
+    const now = Date.now();
+    rows = rows.filter((l) => {
+      const s = db.sellers.find((x) => x.id === l.sellerId);
+      return (
+        s &&
+        !s.blocked &&
+        s.membershipExpiresAt &&
+        new Date(s.membershipExpiresAt).getTime() > now
+      );
+    });
+  }
   if (opts.categoryId) rows = rows.filter((l) => l.categoryId === opts.categoryId);
   if (opts.areaId) rows = rows.filter((l) => l.areaId === opts.areaId);
   if (opts.q) {
@@ -192,6 +213,16 @@ export async function queryListings(opts: ListingQuery = {}): Promise<Listing[]>
   else if (opts.sort === "price_desc") rows.sort((a, b) => b.price - a.price);
   else rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return rows;
+}
+
+// เช็คว่าผู้ขายยังแสดงประกาศได้ไหม (สมาชิก active + ไม่ถูกแบน)
+export function isSellerActive(seller: Seller | undefined): boolean {
+  return Boolean(
+    seller &&
+      !seller.blocked &&
+      seller.membershipExpiresAt &&
+      new Date(seller.membershipExpiresAt).getTime() > Date.now()
+  );
 }
 
 export async function getListing(id: string): Promise<Listing | undefined> {
@@ -469,6 +500,44 @@ export async function getPayments(): Promise<Payment[]> {
     return (data ?? []).map(rowToPayment);
   }
   return db.payments;
+}
+
+// ประวัติการจ่ายของผู้ขายรายนั้น
+export async function getSellerPayments(sellerId: string): Promise<Payment[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb()
+      .from("payments")
+      .select("*")
+      .eq("seller_id", sellerId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map(rowToPayment);
+  }
+  return db.payments.filter((p) => p.sellerId === sellerId);
+}
+
+export async function getPayment(id: string): Promise<Payment | undefined> {
+  if (isSupabaseReady()) {
+    const { data } = await sb().from("payments").select("*").eq("id", id).maybeSingle();
+    return data ? rowToPayment(data) : undefined;
+  }
+  return db.payments.find((p) => p.id === id);
+}
+
+// ส่งสลิปใหม่ (กรณีถูกปฏิเสธ/ยังไม่ยืนยัน) → กลับเป็น pending รอตรวจอีกครั้ง
+export async function resubmitPaymentSlip(paymentId: string, slipUrl: string): Promise<void> {
+  if (isSupabaseReady()) {
+    await sb()
+      .from("payments")
+      .update({ slip_url: slipUrl, status: "pending", note: null })
+      .eq("id", paymentId);
+    return;
+  }
+  const pay = db.payments.find((p) => p.id === paymentId);
+  if (pay) {
+    pay.slipUrl = slipUrl;
+    pay.status = "pending";
+    pay.note = undefined;
+  }
 }
 
 export async function adjustExpiry(sellerId: string, days: number, reason: string): Promise<void> {

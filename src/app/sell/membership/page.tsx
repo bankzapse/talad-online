@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
-import { getPackages } from "@/lib/data";
-import { daysLeft } from "@/lib/format";
-import { startTrialAction, payAction } from "@/app/actions";
+import { getPackages, getSellerPayments } from "@/lib/data";
+import { daysLeft, formatBaht, timeAgo } from "@/lib/format";
+import { startTrialAction, payAction, resubmitSlipAction } from "@/app/actions";
 import SlipUpload from "@/components/SlipUpload";
 import SubmitButton from "@/components/SubmitButton";
 import { COMPANY } from "@/lib/company";
@@ -18,9 +18,20 @@ export default async function Membership({
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
   const sp = await searchParams;
-  const packages = await getPackages(true);
+  const [packages, allPackages, payments] = await Promise.all([
+    getPackages(true),
+    getPackages(),
+    getSellerPayments(seller.id),
+  ]);
+  const pkgMap = new Map(allPackages.map((p) => [p.id, p]));
   const dleft = daysLeft(seller.membershipExpiresAt);
   const pay = payAction.bind(null, seller.id);
+
+  const PAY_STATUS: Record<string, { label: string; cls: string }> = {
+    pending: { label: "รอตรวจสอบ", cls: "border-amber-200 bg-amber-50 text-amber-600" },
+    verified: { label: "ยืนยันแล้ว", cls: "border-brand/30 bg-brand-light text-brand-dark" },
+    rejected: { label: "ถูกปฏิเสธ", cls: "border-red-200 bg-red-50 text-red-600" },
+  };
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -122,6 +133,55 @@ export default async function Membership({
           ตรวจสลิปกับธนาคารอัตโนมัติเมื่อเชื่อม API (SlipOK/slip2go) — ระหว่างนี้แอดมินยืนยันมือได้
         </p>
       </form>
+
+      {/* ประวัติการชำระเงิน + ใบเสร็จ + ส่งสลิปใหม่ */}
+      {payments.length > 0 && (
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-medium text-slate-500">ประวัติการชำระเงิน</h2>
+          <div className="space-y-2">
+            {payments.map((p) => {
+              const st = PAY_STATUS[p.status];
+              const pkg = pkgMap.get(p.packageId);
+              const resubmit = resubmitSlipAction.bind(null, p.id);
+              return (
+                <div key={p.id} className="card p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium">
+                        แพ็ก {pkg?.name ?? "-"} · {formatBaht(p.amount)}
+                      </div>
+                      <div className="text-xs text-slate-400">{timeAgo(p.createdAt)}</div>
+                    </div>
+                    <span className={`chip ${st.cls}`}>{st.label}</span>
+                    {p.status === "verified" && (
+                      <Link
+                        href={`/sell/receipt/${p.id}`}
+                        className="btn-outline px-3 py-1 text-xs"
+                      >
+                        🧾 ใบเสร็จ
+                      </Link>
+                    )}
+                  </div>
+
+                  {p.status === "rejected" && (
+                    <form action={resubmit} className="mt-2 rounded-lg bg-red-50/60 p-3">
+                      <p className="text-xs text-red-600">
+                        เหตุผล: {p.note || "ยอด/สลิปไม่ตรง"} — แนบสลิปใหม่แล้วส่งอีกครั้ง
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <SlipUpload />
+                        <SubmitButton className="btn-primary px-3 py-1.5 text-xs" pendingText="กำลังส่ง…">
+                          ส่งสลิปใหม่
+                        </SubmitButton>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

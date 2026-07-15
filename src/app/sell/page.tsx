@@ -97,17 +97,23 @@ export default async function SellHome() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-sm font-medium">{l.title}</span>
-                  <span
-                    className={`chip shrink-0 ${
-                      l.status === "active"
-                        ? "border-brand/30 bg-brand-light text-brand-dark"
-                        : l.status === "pending_review"
-                        ? "border-amber-200 bg-amber-50 text-amber-600"
-                        : "border-slate-200 bg-slate-50 text-slate-500"
-                    }`}
-                  >
-                    {STATUS_LABEL[l.status]}
-                  </span>
+                  {l.status === "active" && !active ? (
+                    <span className="chip shrink-0 border-amber-200 bg-amber-50 text-amber-600">
+                      ซ่อน–รอต่ออายุ
+                    </span>
+                  ) : (
+                    <span
+                      className={`chip shrink-0 ${
+                        l.status === "active"
+                          ? "border-brand/30 bg-brand-light text-brand-dark"
+                          : l.status === "pending_review"
+                          ? "border-amber-200 bg-amber-50 text-amber-600"
+                          : "border-slate-200 bg-slate-50 text-slate-500"
+                      }`}
+                    >
+                      {STATUS_LABEL[l.status]}
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-slate-400">
                   {formatPrice(l.price, l.unit)} · 📍 {area?.market}

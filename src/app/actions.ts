@@ -18,6 +18,8 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  getPayment,
+  resubmitPaymentSlip,
 } from "@/lib/data";
 import type { Unit } from "@/lib/types";
 import { safeNext } from "@/lib/url";
@@ -124,6 +126,19 @@ export async function payAction(_sellerId: string, formData: FormData) {
     const result = await verifySlipAmount(slipPath, pkg.price);
     if (result?.verified) await verifyPayment(payment.id);
   }
+  redirect("/sell/membership?paid=1");
+}
+
+// ส่งสลิปใหม่ (กรณีถูกปฏิเสธ/ยังไม่ยืนยัน) — ตรวจสิทธิ์เจ้าของ
+export async function resubmitSlipAction(paymentId: string, formData: FormData) {
+  const seller = await getCurrentSeller();
+  if (!seller) redirect("/login");
+  const slipPath = String(formData.get("slipPath") || "");
+  const pay = await getPayment(paymentId);
+  if (!pay || pay.sellerId !== seller!.id) redirect("/sell/membership");
+  if (pay.status === "verified") redirect("/sell/membership");
+  if (!slipPath) redirect("/sell/membership?error=noslip");
+  await resubmitPaymentSlip(paymentId, slipPath);
   redirect("/sell/membership?paid=1");
 }
 

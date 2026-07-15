@@ -6,6 +6,7 @@ import {
   getArea,
   getSeller,
   getSellerActiveCount,
+  isSellerActive,
 } from "@/lib/data";
 import { formatPrice, timeAgo } from "@/lib/format";
 import { isBuyerLoggedIn } from "@/lib/auth";
@@ -30,7 +31,8 @@ export default async function ListingDetail({
     getSeller(listing.sellerId),
     isBuyerLoggedIn(),
   ]);
-  if (!seller) notFound();
+  // ซ่อนถ้าผู้ขายสมาชิกหมด/ถูกแบน (ประกาศไม่แสดงต่อผู้ซื้อ)
+  if (!seller || !isSellerActive(seller)) notFound();
   const activeCount = await getSellerActiveCount(seller.id);
 
   const lineContact = `@${seller.displayName.replace(/\s/g, "").slice(0, 10)}`;
