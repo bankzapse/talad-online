@@ -1,4 +1,4 @@
-# 🧺 ตลาดรวม (talad-ruam)
+# 🧺 ตลาดออนไลน์ (talad-online)
 
 กระดานประกาศซื้อขาย **ของสด + สินค้ามือสอง** ในตลาด — ผู้ซื้อ–ผู้ขายนัดเจอจ่ายเงินสดกันเอง
 ระบบไม่แตะเงินซื้อขาย รายได้จากค่าสมาชิกผู้ขาย (ทดลองฟรี 30 วัน → แพ็ก 39–999฿)
@@ -65,7 +65,7 @@ npm run dev        # http://localhost:3000
 
 ## ☁️ Deploy (Vercel)
 
-1. Import repo นี้ที่ [vercel.com/new](https://vercel.com/new) → เลือก `bankzapse/talad-ruam`
+1. Import repo นี้ที่ [vercel.com/new](https://vercel.com/new) → เลือก `bankzapse/talad-online`
 2. Framework: **Next.js** (ตรวจจับอัตโนมัติ) — ไม่ต้องตั้งค่าเพิ่มก็ deploy demo ได้เลย
 3. (เมื่อพร้อม) เพิ่ม Environment Variables ตาม `.env.example`
 

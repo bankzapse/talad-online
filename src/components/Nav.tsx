@@ -11,7 +11,7 @@ export default async function Nav() {
       <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-bold text-brand-dark">
           <span className="text-xl">🧺</span>
-          <span>ตลาดรวม</span>
+          <span>ตลาดออนไลน์</span>
         </Link>
         <nav className="ml-auto flex items-center gap-1 text-sm">
           <Link href="/" className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100">

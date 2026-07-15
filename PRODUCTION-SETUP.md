@@ -28,7 +28,7 @@
    ```
    https://<โดเมนจริงของคุณ>/api/auth/line/callback
    ```
-   (เช่น `https://talad-ruam.vercel.app/api/auth/line/callback`)
+   (เช่น `https://talad-online.vercel.app/api/auth/line/callback`)
 4. แท็บ **Basic settings** คัดลอก:
    - `Channel ID` → `LINE_LOGIN_CHANNEL_ID`
    - `Channel secret` → `LINE_LOGIN_CHANNEL_SECRET`
@@ -73,7 +73,7 @@ npx vercel --prod --scope chao-dee
 ```
 
 **วิธี B — เว็บ Vercel:**
-Project **talad-ruam** → **Settings → Environment Variables** → ใส่ทีละตัวตาม `.env.example` → **Redeploy**
+Project **talad-online** → **Settings → Environment Variables** → ใส่ทีละตัวตาม `.env.example` → **Redeploy**
 
 ---
 
