@@ -74,6 +74,10 @@ export async function createListingAction(_sellerId: string, formData: FormData)
   const price = Number(formData.get("price") || 0);
   const categoryId = String(formData.get("categoryId") || "");
   const areaId = String(formData.get("areaId") || "");
+  const dmRaw = String(formData.get("deliveryMethod") || "meetup");
+  const deliveryMethod = (["meetup", "cod", "shipping"].includes(dmRaw)
+    ? dmRaw
+    : "meetup") as "meetup" | "cod" | "shipping";
 
   // validation
   if (!title || !categoryId || !areaId) redirect("/sell/new?error=required");
@@ -89,6 +93,7 @@ export async function createListingAction(_sellerId: string, formData: FormData)
     categoryId,
     areaId,
     images,
+    deliveryMethod,
   });
   redirect("/sell");
 }

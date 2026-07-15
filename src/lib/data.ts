@@ -316,11 +316,13 @@ export interface NewListingInput {
   categoryId: string;
   areaId: string;
   images?: string[];
+  deliveryMethod?: Listing["deliveryMethod"];
 }
 
 export async function createListing(input: NewListingInput): Promise<Listing> {
   const flag = checkBlocklist(input.title, input.description);
   const status: Listing["status"] = flag.hit ? "pending_review" : "active";
+  const deliveryMethod = input.deliveryMethod ?? "meetup";
 
   if (isSupabaseReady()) {
     const { data } = await sb()
@@ -335,6 +337,7 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
         area_id: input.areaId,
         images: input.images ?? [],
         status,
+        delivery_method: deliveryMethod,
         flagged_keywords: flag.matched,
       })
       .select("*")
@@ -353,6 +356,7 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
     areaId: input.areaId,
     images: input.images ?? [],
     status,
+    deliveryMethod,
     createdAt: new Date().toISOString(),
     reportCount: 0,
     flaggedKeywords: flag.matched,

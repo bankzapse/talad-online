@@ -54,6 +54,9 @@ create index if not exists listings_status_idx on listings(status);
 create index if not exists listings_area_idx on listings(area_id);
 create index if not exists listings_category_idx on listings(category_id);
 
+-- วิธีรับของ (meetup=นัดรับ, cod=เก็บเงินปลายทาง, shipping=ส่งพัสดุ)
+alter table listings add column if not exists delivery_method text not null default 'meetup';
+
 -- ---------- membership packages ----------
 create table if not exists packages (
   id text primary key,

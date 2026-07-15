@@ -13,6 +13,7 @@ import { isBuyerLoggedIn } from "@/lib/auth";
 import TrustBadge from "@/components/TrustBadge";
 import ContactButton from "@/components/ContactButton";
 import ReportButton from "@/components/ReportButton";
+import { DELIVERY_METHODS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -84,14 +85,42 @@ export default async function ListingDetail({
             <TrustBadge seller={seller} activeCount={activeCount} />
           </div>
 
-          <div className="mt-5">
+          {/* ความปลอดภัยตามวิธีรับของ */}
+          {(() => {
+            const dm = DELIVERY_METHODS.find((d) => d.value === listing.deliveryMethod);
+            const safe = listing.deliveryMethod !== "shipping";
+            return (
+              <div
+                className={`mt-5 rounded-xl border p-3 text-sm ${
+                  safe
+                    ? "border-brand/30 bg-brand-soft text-brand-dark"
+                    : "border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                <div className="font-semibold">
+                  {listing.deliveryMethod === "meetup" && "🤝 นัดรับเจอตัว · จ่ายเงินสด"}
+                  {listing.deliveryMethod === "cod" && "📦 เก็บเงินปลายทาง (COD)"}
+                  {listing.deliveryMethod === "shipping" && "⚠️ ส่งพัสดุ · ต้องโอนก่อน"}
+                </div>
+                <p className="mt-0.5 text-xs">
+                  {safe
+                    ? "ไม่ต้องโอนเงินล่วงหน้า — จ่ายตอนได้รับ/เห็นสินค้า ปลอดภัยกว่า"
+                    : "เสี่ยงถูกโกง! ตรวจสอบผู้ขายให้มั่นใจก่อนโอน · อย่าโอนถ้าไม่แน่ใจ"}{" "}
+                  ({dm?.label})
+                </p>
+              </div>
+            );
+          })()}
+
+          <div className="mt-3">
             <ContactButton
               listingId={listing.id}
               buyerLoggedIn={buyerLoggedIn}
               lineContact={lineContact}
             />
-            <p className="mt-2 text-center text-xs text-slate-400">
-              นัดเจอจ่ายเงินสด · โปรดตรวจสอบสินค้าก่อนชำระ · ระวังการโอนเงินมัดจำล่วงหน้า
+            <p className="mt-2 rounded-lg bg-amber-50 p-2 text-center text-xs text-amber-700">
+              🛡️ สินค้าอยู่ที่ <b>{area?.province}</b> — หากคุณอยู่คนละจังหวัด แนะนำเลือกผู้ขายที่รับ
+              COD/นัดรับ · <b>ห้ามโอนมัดจำ/ค่าสินค้าล่วงหน้า</b> ให้คนไม่รู้จัก
             </p>
           </div>
 

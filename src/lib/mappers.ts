@@ -27,6 +27,7 @@ export function rowToListing(r: Record<string, unknown>): Listing {
     areaId: String(r.area_id),
     images: (r.images as string[]) ?? [],
     status: r.status as Listing["status"],
+    deliveryMethod: (r.delivery_method as Listing["deliveryMethod"]) ?? "meetup",
     createdAt: String(r.created_at),
     reportCount: Number(r.report_count ?? 0),
     flaggedKeywords: (r.flagged_keywords as string[]) ?? [],

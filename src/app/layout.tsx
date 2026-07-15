@@ -107,6 +107,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <ul className="space-y-1.5 text-slate-500">
                     <li><Link href="/" className="hover:text-brand-dark">หน้าแรก</Link></li>
                     <li><Link href="/login" className="hover:text-brand-dark">สำหรับผู้ขาย</Link></li>
+                    <li><Link href="/help" className="hover:text-brand-dark">ช่วยเหลือ &amp; ติดต่อ</Link></li>
                   </ul>
                 </div>
                 <div>

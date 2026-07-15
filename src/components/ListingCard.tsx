@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Listing } from "@/lib/types";
+import { DELIVERY_METHODS } from "@/lib/types";
 import { formatPrice, timeAgo } from "@/lib/format";
 
 export default function ListingCard({
@@ -46,6 +47,17 @@ export default function ListingCard({
         <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
           <span className="line-clamp-1">📍 {areaMarket}</span>
           <span className="shrink-0">{timeAgo(listing.createdAt)}</span>
+        </div>
+        <div className="mt-1">
+          <span
+            className={`chip px-2 py-0.5 text-[10px] ${
+              listing.deliveryMethod === "shipping"
+                ? "border-amber-200 bg-amber-50 text-amber-600"
+                : "border-brand/25 bg-brand-soft text-brand-dark"
+            }`}
+          >
+            {DELIVERY_METHODS.find((d) => d.value === listing.deliveryMethod)?.short ?? "นัดรับ"}
+          </span>
         </div>
       </div>
     </Link>

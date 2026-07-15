@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
 import { getCategories, getAreas } from "@/lib/data";
-import { UNITS } from "@/lib/types";
+import { UNITS, DELIVERY_METHODS } from "@/lib/types";
 import { createListingAction } from "@/app/actions";
 import ImageUpload from "@/components/ImageUpload";
 import SubmitButton from "@/components/SubmitButton";
@@ -87,6 +87,20 @@ export default async function NewListing() {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="label">วิธีรับของ *</label>
+            <select name="deliveryMethod" className="input" defaultValue="meetup">
+              {DELIVERY_METHODS.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-slate-400">
+              แนะนำ &ldquo;นัดรับ&rdquo; หรือ &ldquo;COD&rdquo; เพื่อความปลอดภัยของผู้ซื้อ (ไม่ต้องโอนล่วงหน้า)
+            </p>
           </div>
 
           <p className="rounded-lg bg-slate-50 p-2 text-xs text-slate-500">

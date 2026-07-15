@@ -20,6 +20,9 @@ export default async function Nav() {
           <Link href="/" className="hidden rounded-full px-3 py-2 text-slate-600 hover:bg-white/70 sm:block">
             หน้าแรก
           </Link>
+          <Link href="/help" className="hidden rounded-full px-3 py-2 text-slate-600 hover:bg-white/70 sm:block">
+            ช่วยเหลือ
+          </Link>
           {seller ? (
             <>
               {dleft !== null && (

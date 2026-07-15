@@ -23,6 +23,18 @@ export const UNITS: Unit[] = [
 
 export type ListingStatus = "active" | "sold" | "hidden" | "pending_review";
 
+export type DeliveryMethod = "meetup" | "cod" | "shipping";
+
+export const DELIVERY_METHODS: {
+  value: DeliveryMethod;
+  label: string;
+  short: string;
+}[] = [
+  { value: "meetup", label: "นัดรับเอง — จ่ายเงินสดตอนรับของ", short: "นัดรับ" },
+  { value: "cod", label: "ส่งพัสดุเก็บเงินปลายทาง (COD)", short: "COD" },
+  { value: "shipping", label: "ส่งพัสดุ — โอนก่อนส่ง", short: "ส่งพัสดุ" },
+];
+
 export interface Category {
   id: string;
   name: string;
@@ -58,6 +70,7 @@ export interface Listing {
   areaId: string;
   images: string[];
   status: ListingStatus;
+  deliveryMethod: DeliveryMethod;
   createdAt: string;
   reportCount: number;
   flaggedKeywords: string[]; // คำที่ติด blocklist → เข้าคิว admin
