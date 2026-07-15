@@ -40,6 +40,51 @@ export async function getAreas(): Promise<Area[]> {
 export async function getCategory(id: string): Promise<Category | undefined> {
   return (await getCategories()).find((c) => c.id === id);
 }
+
+// ---------- จัดการหมวดหมู่ (admin) ----------
+export async function categoryListingCount(id: string): Promise<number> {
+  if (isSupabaseReady()) {
+    const { count } = await sb()
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("category_id", id);
+    return count ?? 0;
+  }
+  return db.listings.filter((l) => l.categoryId === id).length;
+}
+
+export async function createCategory(name: string, emoji: string): Promise<void> {
+  const id = `cat-${Math.random().toString(36).slice(2, 8)}`;
+  if (isSupabaseReady()) {
+    await sb().from("categories").insert({ id, name, emoji: emoji || "🛍️" });
+    return;
+  }
+  db.categories.push({ id, name, emoji: emoji || "🛍️" });
+}
+
+export async function updateCategory(id: string, name: string, emoji: string): Promise<void> {
+  if (isSupabaseReady()) {
+    await sb().from("categories").update({ name, emoji: emoji || "🛍️" }).eq("id", id);
+    return;
+  }
+  const c = db.categories.find((x) => x.id === id);
+  if (c) {
+    c.name = name;
+    c.emoji = emoji || "🛍️";
+  }
+}
+
+// ลบได้เฉพาะเมื่อไม่มีประกาศใช้หมวดนี้ (กัน FK พัง) — คืน true ถ้าลบสำเร็จ
+export async function deleteCategory(id: string): Promise<boolean> {
+  if ((await categoryListingCount(id)) > 0) return false;
+  if (isSupabaseReady()) {
+    await sb().from("categories").delete().eq("id", id);
+    return true;
+  }
+  const i = db.categories.findIndex((x) => x.id === id);
+  if (i >= 0) db.categories.splice(i, 1);
+  return true;
+}
 export async function getArea(id: string): Promise<Area | undefined> {
   return (await getAreas()).find((a) => a.id === id);
 }

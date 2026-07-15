@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Filters from "@/components/Filters";
 import ListingCard from "@/components/ListingCard";
+import CategorySidebar from "@/components/CategorySidebar";
 import { getCategories, getAreas, getSellers, queryListings } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -67,8 +68,8 @@ export default async function Home({
         </div>
       </section>
 
-      {/* ---------- CATEGORY CHIPS ---------- */}
-      <section>
+      {/* ---------- CATEGORY CHIPS (มือถือ) ---------- */}
+      <section className="lg:hidden">
         <div className="flex flex-wrap gap-2">
           <Link
             href="/"
@@ -88,36 +89,48 @@ export default async function Home({
         </div>
       </section>
 
-      {/* ---------- FILTERS + LISTINGS ---------- */}
+      {/* ---------- SIDEBAR + FILTERS + LISTINGS ---------- */}
       <section id="listings" className="scroll-mt-20">
-        <Filters categories={categories} areas={areas} />
+        <div className="grid gap-6 lg:grid-cols-[236px_1fr]">
+          <div className="hidden lg:block">
+            <CategorySidebar categories={categories} activeId={sp.category} />
+          </div>
 
-        <div className="mb-4 flex items-baseline justify-between">
-          <h2 className="section-title">
-            {filtering ? "ผลการค้นหา" : "ประกาศล่าสุด"}
-          </h2>
-          <span className="text-sm text-slate-500">{listings.length} รายการ</span>
+          <div>
+            <Filters categories={categories} areas={areas} />
+
+            <div className="mb-4 flex items-baseline justify-between">
+              <h2 className="section-title">
+                {filtering
+                  ? catMap.get(sp.category ?? "")?.name
+                    ? `${catMap.get(sp.category!)!.emoji} ${catMap.get(sp.category!)!.name}`
+                    : "ผลการค้นหา"
+                  : "ประกาศล่าสุด"}
+              </h2>
+              <span className="text-sm text-slate-500">{listings.length} รายการ</span>
+            </div>
+
+            {listings.length === 0 ? (
+              <div className="card grid place-items-center gap-2 p-14 text-center">
+                <div className="text-4xl">🧺</div>
+                <p className="font-medium text-slate-600">ยังไม่มีประกาศที่ตรงเงื่อนไข</p>
+                <p className="text-sm text-slate-400">ลองปรับตัวกรอง หรือกลับมาดูใหม่เร็ว ๆ นี้</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+                {listings.map((l) => (
+                  <ListingCard
+                    key={l.id}
+                    listing={l}
+                    emoji={catMap.get(l.categoryId)?.emoji ?? "🛍️"}
+                    areaMarket={areaMap.get(l.areaId)?.market ?? ""}
+                    sellerVerified={Boolean(sellerMap.get(l.sellerId)?.phoneVerified)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-
-        {listings.length === 0 ? (
-          <div className="card grid place-items-center gap-2 p-14 text-center">
-            <div className="text-4xl">🧺</div>
-            <p className="font-medium text-slate-600">ยังไม่มีประกาศที่ตรงเงื่อนไข</p>
-            <p className="text-sm text-slate-400">ลองปรับตัวกรอง หรือกลับมาดูใหม่เร็ว ๆ นี้</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-            {listings.map((l) => (
-              <ListingCard
-                key={l.id}
-                listing={l}
-                emoji={catMap.get(l.categoryId)?.emoji ?? "🛍️"}
-                areaMarket={areaMap.get(l.areaId)?.market ?? ""}
-                sellerVerified={Boolean(sellerMap.get(l.sellerId)?.phoneVerified)}
-              />
-            ))}
-          </div>
-        )}
       </section>
 
       {/* ---------- HOW IT WORKS ---------- */}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { COMPANY } from "@/lib/company";
 
 export const metadata = { title: "นโยบายความเป็นส่วนตัว (PDPA) — ตลาดออนไลน์" };
 
@@ -64,8 +65,14 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="font-bold text-slate-800">7. การติดต่อ</h2>
-          <p>หากมีข้อสงสัยเกี่ยวกับข้อมูลส่วนบุคคล โปรดติดต่อผู้ดูแลระบบผ่านช่องทางที่ประกาศไว้ในเว็บไซต์</p>
+          <h2 className="font-bold text-slate-800">7. ผู้ควบคุมข้อมูล / การติดต่อ</h2>
+          <div className="rounded-lg bg-slate-50 p-3 text-sm">
+            <div className="font-medium text-slate-700">{COMPANY.nameTh}</div>
+            <div className="text-slate-500">{COMPANY.nameEn}</div>
+            <div className="text-slate-500">เลขทะเบียน {COMPANY.regNo}</div>
+            <div className="text-slate-500">{COMPANY.address}</div>
+            <div className="text-slate-500">โทร {COMPANY.phones.join(" , ")}</div>
+          </div>
         </section>
 
         <p className="text-xs text-slate-400">

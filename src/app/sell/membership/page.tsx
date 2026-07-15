@@ -5,6 +5,7 @@ import { getPackages } from "@/lib/data";
 import { daysLeft } from "@/lib/format";
 import { startTrialAction, payAction } from "@/app/actions";
 import SlipUpload from "@/components/SlipUpload";
+import { COMPANY } from "@/lib/company";
 
 export const dynamic = "force-dynamic";
 
@@ -61,16 +62,22 @@ export default async function Membership({
         <h2 className="text-sm font-medium text-slate-700">ต่ออายุสมาชิก</h2>
 
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start">
-          <div className="flex h-36 w-36 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 text-center text-xs text-slate-400">
-            [ PromptPay QR<br />บัญชีธุรกิจ ]
+          <div className="w-full rounded-xl border border-brand/20 bg-brand-soft/50 p-4 text-sm sm:w-64">
+            <div className="text-xs font-medium text-slate-500">โอนเข้าบัญชี</div>
+            <div className="mt-1 font-bold text-brand-dark">{COMPANY.bank.shortName}</div>
+            <div className="text-xs text-slate-500">{COMPANY.bank.branch}</div>
+            <div className="mt-2 text-lg font-extrabold tracking-wide text-ink">
+              {COMPANY.bank.accountNo}
+            </div>
+            <div className="text-xs text-slate-500">{COMPANY.bank.accountName}</div>
           </div>
           <div className="flex-1 text-sm text-slate-600">
             <p className="font-medium">วิธีจ่าย</p>
             <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-xs">
               <li>เลือกแพ็กด้านล่าง</li>
-              <li>สแกน QR แล้วโอนตามยอด</li>
+              <li>โอนตามยอดเข้าบัญชีด้านซ้าย</li>
               <li>แนบสลิป แล้วกด &ldquo;ยืนยันการชำระ&rdquo;</li>
-              <li>ระบบ/แอดมินตรวจยอด → ต่ออายุอัตโนมัติ</li>
+              <li>แอดมิน/ระบบตรวจยอด → ต่ออายุอัตโนมัติ</li>
             </ol>
           </div>
         </div>

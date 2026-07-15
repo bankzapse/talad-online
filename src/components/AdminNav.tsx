@@ -8,6 +8,7 @@ export default async function AdminNav({ active }: { active: string }) {
   const items = [
     { key: "home", href: "/admin", label: "ภาพรวม" },
     { key: "moderation", href: "/admin/moderation", label: `คิวตรวจ${queue ? ` (${queue})` : ""}` },
+    { key: "categories", href: "/admin/categories", label: "ประเภทสินค้า" },
     { key: "payments", href: "/admin/payments", label: `การชำระเงิน${pendingPay ? ` (${pendingPay})` : ""}` },
     { key: "packages", href: "/admin/packages", label: "แพ็กสมาชิก" },
   ];

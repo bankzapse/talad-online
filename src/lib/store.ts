@@ -37,8 +37,8 @@ declare global {
 
 function seed(): DB {
   return {
-    categories: CATEGORIES,
-    areas: AREAS,
+    categories: structuredClone(CATEGORIES),
+    areas: structuredClone(AREAS),
     sellers: structuredClone(SELLERS),
     listings: structuredClone(LISTINGS),
     packages: structuredClone(DEFAULT_PACKAGES),

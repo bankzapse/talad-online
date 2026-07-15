@@ -3,6 +3,7 @@ import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import Link from "next/link";
+import { COMPANY } from "@/lib/company";
 
 const noto = Noto_Sans_Thai({
   subsets: ["thai", "latin"],
@@ -92,6 +93,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   ตลาดออนไลน์เป็นเพียงตัวกลางประกาศ ไม่รับผิดชอบการซื้อขาย/คุณภาพสินค้า
                   ผู้ซื้อ–ผู้ขายนัดเจอจ่ายเงินสดกันเอง โปรดใช้วิจารณญาณ
                 </p>
+                <div className="mt-4 space-y-0.5 text-xs text-slate-400">
+                  <div className="font-medium text-slate-500">{COMPANY.nameTh}</div>
+                  <div>{COMPANY.nameEn}</div>
+                  <div>เลขทะเบียน {COMPANY.regNo}</div>
+                  <div>{COMPANY.address}</div>
+                  <div>โทร {COMPANY.phones.join(" , ")}</div>
+                </div>
               </div>
               <div className="flex gap-10 text-sm">
                 <div>

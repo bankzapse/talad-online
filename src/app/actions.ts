@@ -15,6 +15,9 @@ import {
   setSellerBlocked,
   upsertPackage,
   getPackages,
+  createCategory,
+  updateCategory,
+  deleteCategory,
 } from "@/lib/data";
 import type { Unit } from "@/lib/types";
 import { safeNext } from "@/lib/url";
@@ -147,6 +150,24 @@ export async function toggleBlockAction(sellerId: string, blocked: boolean) {
   await setSellerBlocked(sellerId, blocked);
   redirect("/admin");
 }
+// ---------- admin: หมวดหมู่ ----------
+export async function createCategoryAction(formData: FormData) {
+  const name = String(formData.get("name") || "").trim().slice(0, 40);
+  const emoji = String(formData.get("emoji") || "").trim().slice(0, 4);
+  if (name) await createCategory(name, emoji);
+  redirect("/admin/categories");
+}
+export async function updateCategoryAction(id: string, formData: FormData) {
+  const name = String(formData.get("name") || "").trim().slice(0, 40);
+  const emoji = String(formData.get("emoji") || "").trim().slice(0, 4);
+  if (name) await updateCategory(id, name, emoji);
+  redirect("/admin/categories");
+}
+export async function deleteCategoryAction(id: string) {
+  const ok = await deleteCategory(id);
+  redirect(ok ? "/admin/categories" : "/admin/categories?error=inuse");
+}
+
 export async function savePackageAction(formData: FormData) {
   const id = String(formData.get("id"));
   const existing = (await getPackages()).find((p) => p.id === id);

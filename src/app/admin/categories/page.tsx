@@ -1,0 +1,89 @@
+import AdminNav from "@/components/AdminNav";
+import { getCategories, categoryListingCount } from "@/lib/data";
+import {
+  createCategoryAction,
+  updateCategoryAction,
+  deleteCategoryAction,
+} from "@/app/actions";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminCategories({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const sp = await searchParams;
+  const categories = await getCategories();
+  const counts = new Map(
+    await Promise.all(
+      categories.map(async (c) => [c.id, await categoryListingCount(c.id)] as const)
+    )
+  );
+
+  return (
+    <div>
+      <h1 className="mb-4 text-xl font-bold">จัดการประเภทสินค้า</h1>
+      <AdminNav active="categories" />
+
+      {sp.error === "inuse" && (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          ลบไม่ได้ — ยังมีประกาศใช้หมวดนี้อยู่ (ย้ายประกาศไปหมวดอื่นก่อน)
+        </div>
+      )}
+
+      {/* เพิ่มหมวดใหม่ */}
+      <form
+        action={createCategoryAction}
+        className="card mb-5 flex flex-wrap items-end gap-3 p-4"
+      >
+        <div className="w-20">
+          <label className="label">ไอคอน</label>
+          <input name="emoji" className="input text-center text-lg" placeholder="🥬" maxLength={4} />
+        </div>
+        <div className="flex-1">
+          <label className="label">ชื่อหมวดใหม่</label>
+          <input name="name" required className="input" placeholder="เช่น เครื่องแกง, ผลไม้ตามฤดู" />
+        </div>
+        <button className="btn-primary">+ เพิ่มหมวด</button>
+      </form>
+
+      {/* รายการหมวด */}
+      <div className="space-y-2">
+        {categories.map((c) => {
+          const used = counts.get(c.id) ?? 0;
+          const save = updateCategoryAction.bind(null, c.id);
+          const del = deleteCategoryAction.bind(null, c.id);
+          return (
+            <div key={c.id} className="card flex flex-wrap items-center gap-3 p-3">
+              <form action={save} className="flex flex-1 flex-wrap items-center gap-2">
+                <input
+                  name="emoji"
+                  defaultValue={c.emoji}
+                  maxLength={4}
+                  className="input w-16 text-center text-lg"
+                />
+                <input name="name" defaultValue={c.name} className="input w-44 flex-1" />
+                <span className="text-xs text-slate-400">{used} ประกาศ</span>
+                <button className="btn-outline px-3 py-1.5 text-xs">บันทึก</button>
+              </form>
+              <form action={del}>
+                <button
+                  disabled={used > 0}
+                  className="btn px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                  title={used > 0 ? "มีประกาศใช้อยู่ ลบไม่ได้" : "ลบหมวดนี้"}
+                >
+                  ลบ
+                </button>
+              </form>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-4 text-xs text-slate-400">
+        * หมวดที่มีประกาศใช้อยู่จะลบไม่ได้ (กันข้อมูลเสีย) — แก้ชื่อ/ไอคอนได้ตลอด
+      </p>
+    </div>
+  );
+}
