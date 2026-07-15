@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminSettings({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
   const sp = await searchParams;
   const s = await getPaymentSettings();
