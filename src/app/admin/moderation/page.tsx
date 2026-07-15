@@ -2,6 +2,7 @@ import AdminNav from "@/components/AdminNav";
 import { getModerationQueue, getSellers, getCategories } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
 import { moderateAction } from "@/app/actions";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -58,12 +59,12 @@ export default async function Moderation() {
                   </div>
                   <div className="flex shrink-0 flex-col gap-1">
                     <form action={approve}>
-                      <button className="btn-outline w-full px-3 py-1 text-xs">อนุมัติ</button>
+                      <SubmitButton className="btn-outline w-full px-3 py-1 text-xs">อนุมัติ</SubmitButton>
                     </form>
                     <form action={remove}>
-                      <button className="btn w-full bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600">
+                      <SubmitButton className="btn w-full bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600">
                         ลบ/ซ่อน
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import { getCategories, getAreas } from "@/lib/data";
 import { UNITS } from "@/lib/types";
 import { createListingAction } from "@/app/actions";
 import ImageUpload from "@/components/ImageUpload";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,9 @@ export default async function NewListing() {
             ประกาศที่เข้าข่ายจะถูกส่งให้ทีมงานตรวจก่อนแสดง
           </p>
 
-          <button className="btn-primary w-full py-3">ลงประกาศ</button>
+          <SubmitButton className="btn-primary w-full py-3" pendingText="กำลังลงประกาศ…">
+            ลงประกาศ
+          </SubmitButton>
         </form>
       </div>
     </div>

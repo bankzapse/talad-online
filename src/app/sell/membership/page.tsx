@@ -5,6 +5,7 @@ import { getPackages } from "@/lib/data";
 import { daysLeft } from "@/lib/format";
 import { startTrialAction, payAction } from "@/app/actions";
 import SlipUpload from "@/components/SlipUpload";
+import SubmitButton from "@/components/SubmitButton";
 import { COMPANY } from "@/lib/company";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,9 @@ export default async function Membership({
 
       {!seller.trialUsed && (
         <form action={startTrialAction.bind(null, seller.id)} className="mt-4">
-          <button className="btn-primary w-full py-3">🎁 เริ่มทดลองฟรี 30 วัน (ไม่ต้องจ่าย)</button>
+          <SubmitButton className="btn-primary w-full py-3" pendingText="กำลังเริ่ม…">
+            🎁 เริ่มทดลองฟรี 30 วัน (ไม่ต้องจ่าย)
+          </SubmitButton>
         </form>
       )}
 
@@ -112,7 +115,9 @@ export default async function Membership({
           <SlipUpload />
         </div>
 
-        <button className="btn-primary mt-4 w-full py-3">ยืนยันการชำระ (ส่งสลิป)</button>
+        <SubmitButton className="btn-primary mt-4 w-full py-3" pendingText="กำลังส่งสลิป…">
+          ยืนยันการชำระ (ส่งสลิป)
+        </SubmitButton>
         <p className="mt-2 text-xs text-slate-400">
           ตรวจสลิปกับธนาคารอัตโนมัติเมื่อเชื่อม API (SlipOK/slip2go) — ระหว่างนี้แอดมินยืนยันมือได้
         </p>

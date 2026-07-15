@@ -7,6 +7,7 @@ import {
   rejectPaymentAction,
   adjustExpiryAction,
 } from "@/app/actions";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -78,10 +79,10 @@ export default async function Payments() {
                 {p.status === "pending" && (
                   <div className="flex gap-1">
                     <form action={verify}>
-                      <button className="btn-primary px-3 py-1 text-xs">ยืนยัน (ยอดตรง)</button>
+                      <SubmitButton className="btn-primary px-3 py-1 text-xs" pendingText="ยืนยัน…">ยืนยัน (ยอดตรง)</SubmitButton>
                     </form>
                     <form action={reject}>
-                      <button className="btn-outline px-3 py-1 text-xs">ปฏิเสธ</button>
+                      <SubmitButton className="btn-outline px-3 py-1 text-xs">ปฏิเสธ</SubmitButton>
                     </form>
                   </div>
                 )}
@@ -111,7 +112,7 @@ export default async function Payments() {
               </div>
               <input name="days" type="number" defaultValue={3} className="input w-20" />
               <input name="reason" placeholder="เหตุผล" className="input w-40" />
-              <button className="btn-outline px-3 py-1 text-xs">+ วัน</button>
+              <SubmitButton className="btn-outline px-3 py-1 text-xs">+ วัน</SubmitButton>
             </form>
           );
         })}

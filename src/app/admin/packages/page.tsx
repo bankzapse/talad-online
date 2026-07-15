@@ -1,6 +1,7 @@
 import AdminNav from "@/components/AdminNav";
 import { getPackages } from "@/lib/data";
 import { savePackageAction } from "@/app/actions";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function Packages() {
                 <input type="checkbox" name="active" defaultChecked={p.active} />
                 เปิดใช้
               </label>
-              <button className="btn-outline px-3 py-1 text-xs">บันทึก</button>
+              <SubmitButton className="btn-outline px-3 py-1 text-xs">บันทึก</SubmitButton>
             </form>
           );
         })}

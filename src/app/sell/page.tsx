@@ -4,6 +4,7 @@ import { getCurrentSeller } from "@/lib/auth";
 import { getSellerListings, getCategories, getAreas } from "@/lib/data";
 import { formatPrice, daysLeft } from "@/lib/format";
 import { setListingStatusAction, logout } from "@/app/actions";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -115,12 +116,12 @@ export default async function SellHome() {
               <div className="flex shrink-0 gap-1">
                 {l.status === "active" && (
                   <form action={setListingStatusAction.bind(null, l.id, "sold")}>
-                    <button className="btn-outline px-2 py-1 text-xs">ขายแล้ว</button>
+                    <SubmitButton className="btn-outline px-2 py-1 text-xs">ขายแล้ว</SubmitButton>
                   </form>
                 )}
                 {l.status === "sold" && (
                   <form action={setListingStatusAction.bind(null, l.id, "active")}>
-                    <button className="btn-outline px-2 py-1 text-xs">เปิดขายอีก</button>
+                    <SubmitButton className="btn-outline px-2 py-1 text-xs">เปิดขายอีก</SubmitButton>
                   </form>
                 )}
               </div>

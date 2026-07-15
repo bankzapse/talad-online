@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,9 @@ export default async function AdminGate({
         <form action={enter} className="mt-4 space-y-3">
           <input type="hidden" name="next" value={sp.next || "/admin"} />
           <input name="key" type="password" required className="input" placeholder="ADMIN_KEY" />
-          <button className="btn-primary w-full py-2">เข้าสู่ระบบ</button>
+          <SubmitButton className="btn-primary w-full py-2" pendingText="กำลังเข้า…">
+            เข้าสู่ระบบ
+          </SubmitButton>
         </form>
       </div>
     </div>

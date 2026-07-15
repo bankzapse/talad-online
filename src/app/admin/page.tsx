@@ -2,6 +2,7 @@ import AdminNav from "@/components/AdminNav";
 import { getAnalytics, getSellers, getAdminLogs } from "@/lib/data";
 import { formatBaht, daysLeft, timeAgo } from "@/lib/format";
 import { toggleBlockAction } from "@/app/actions";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -63,9 +64,9 @@ export default async function AdminHome() {
                     </div>
                   </div>
                   <form action={toggle}>
-                    <button className="btn-outline px-2 py-1 text-xs">
+                    <SubmitButton className="btn-outline px-2 py-1 text-xs">
                       {s.blocked ? "ปลดแบน" : "แบน"}
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               );

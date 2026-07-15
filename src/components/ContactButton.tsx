@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Spinner from "./Spinner";
 
 export default function ContactButton({
   listingId,
@@ -66,9 +67,15 @@ export default function ContactButton({
     <button
       onClick={handleClick}
       disabled={state === "loading"}
-      className="btn-primary w-full py-3 text-base disabled:opacity-60"
+      className="btn-primary w-full py-3 text-base disabled:opacity-70"
     >
-      {state === "loading" ? "กำลังส่ง…" : "💬 ติดต่อผู้ขาย"}
+      {state === "loading" ? (
+        <>
+          <Spinner /> กำลังส่ง…
+        </>
+      ) : (
+        "💬 ติดต่อผู้ขาย"
+      )}
     </button>
   );
 }

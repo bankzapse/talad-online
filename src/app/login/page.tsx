@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSellers } from "@/lib/data";
 import { loginAsSeller, loginAsBuyer } from "@/app/actions";
 import { isLineLoginConfigured } from "@/lib/line-login";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -33,9 +34,9 @@ export default async function LoginPage({
             </Link>
           ) : (
             <form action={doDemo} className="mt-5">
-              <button className="btn-primary w-full py-3">
+              <SubmitButton className="btn-primary w-full py-3" pendingText="กำลังเข้า…">
                 <span className="text-lg">💚</span> เข้าสู่ระบบด้วย LINE
-              </button>
+              </SubmitButton>
               <p className="mt-3 text-xs text-slate-400">(โหมด demo — ตั้งค่า LINE Login เพื่อใช้จริง)</p>
             </form>
           )}
@@ -76,12 +77,12 @@ export default async function LoginPage({
               const doLogin = loginAsSeller.bind(null, s.id, "/sell");
               return (
                 <form key={s.id} action={doLogin}>
-                  <button className="btn-outline w-full justify-between">
+                  <SubmitButton className="btn-outline w-full justify-between">
                     <span>{s.displayName}</span>
                     <span className="text-xs text-slate-400">
                       {s.trialUsed ? "มีสมาชิก" : "ยังไม่เริ่มทดลอง"}
                     </span>
-                  </button>
+                  </SubmitButton>
                 </form>
               );
             })}

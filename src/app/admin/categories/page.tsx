@@ -5,6 +5,7 @@ import {
   updateCategoryAction,
   deleteCategoryAction,
 } from "@/app/actions";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export default async function AdminCategories({
           <label className="label">ชื่อหมวดใหม่</label>
           <input name="name" required className="input" placeholder="เช่น เครื่องแกง, ผลไม้ตามฤดู" />
         </div>
-        <button className="btn-primary">+ เพิ่มหมวด</button>
+        <SubmitButton className="btn-primary" pendingText="กำลังเพิ่ม…">+ เพิ่มหมวด</SubmitButton>
       </form>
 
       {/* รายการหมวด */}
@@ -65,17 +66,23 @@ export default async function AdminCategories({
                 />
                 <input name="name" defaultValue={c.name} className="input w-44 flex-1" />
                 <span className="text-xs text-slate-400">{used} ประกาศ</span>
-                <button className="btn-outline px-3 py-1.5 text-xs">บันทึก</button>
+                <SubmitButton className="btn-outline px-3 py-1.5 text-xs">บันทึก</SubmitButton>
               </form>
-              <form action={del}>
+              {used > 0 ? (
                 <button
-                  disabled={used > 0}
-                  className="btn px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300"
-                  title={used > 0 ? "มีประกาศใช้อยู่ ลบไม่ได้" : "ลบหมวดนี้"}
+                  disabled
+                  className="btn px-3 py-1.5 text-xs text-slate-300"
+                  title="มีประกาศใช้อยู่ ลบไม่ได้"
                 >
                   ลบ
                 </button>
-              </form>
+              ) : (
+                <form action={del}>
+                  <SubmitButton className="btn px-3 py-1.5 text-xs text-red-500 hover:bg-red-50">
+                    ลบ
+                  </SubmitButton>
+                </form>
+              )}
             </div>
           );
         })}
