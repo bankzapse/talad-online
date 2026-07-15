@@ -5,11 +5,12 @@
 ---
 
 ## ✅ ทำเสร็จ + ใช้งานจริงบน production แล้ว
-- เว็บ live: **https://talad-ruam.vercel.app** (Supabase persist จริง, ข้อมูลไม่หาย)
+- เว็บ live: **https://talad-online.vercel.app** (Vercel rename เสร็จ, public, Supabase persist จริง)
 - ฐานข้อมูล Supabase (Pro) + schema + RLS + storage bucket
 - หน้า admin **ล็อกด้วย ADMIN_KEY** แล้ว (`/admin-gate`)
 - หน้ากฎหมาย **/terms + /privacy (PDPA)** + consent ตอน login
-- โค้ด LINE Login / อัปโหลดรูป / ตรวจสลิป — **พร้อมทำงานทันทีที่ใส่ env**
+- **อัปสลิปจริง**: ผู้ขายแนบสลิปตอนจ่าย → เก็บ bucket private → admin ดูผ่าน signed URL + กดยืนยัน (ต่ออายุอัตโนมัติ)
+- โค้ด LINE Login / อัปโหลดรูป / ตรวจสลิปอัตโนมัติ — **พร้อมทำงานทันทีที่ใส่ env**
 
 ### 🔑 ข้อมูลสำคัญ
 - **ADMIN_KEY** (รหัสเข้า /admin): ผมสร้างให้และตั้งบน Vercel แล้ว — ค่าอยู่ในไฟล์ `.env.local` (บรรทัด `ADMIN_KEY=`) เปิดดูได้ ใช้ล็อกอินที่ `/admin-gate`
@@ -36,8 +37,8 @@
 ### 1. LINE Login (ขั้น 2) — ยังไม่ได้ตั้ง → ตอนนี้ผู้ขายยังล็อกอินจริงไม่ได้
 โค้ดพร้อมแล้ว เหลือสร้าง channel + ใส่ env:
 1. [developers.line.biz](https://developers.line.biz) → Provider → channel แบบ **LINE Login**
-2. **Callback URL** = `<domain จริง>/api/auth/line/callback`
-   - ⚠️ domain: ถ้าจะใช้ **talad-online** ต้อง rename Vercel project ให้เสร็จก่อน (ตอนนี้ live เป็น `talad-ruam.vercel.app`) แล้วอัปเดต `NEXT_PUBLIC_APP_URL` ให้ตรง
+2. **Callback URL** = `https://talad-online.vercel.app/api/auth/line/callback`
+   (`NEXT_PUBLIC_APP_URL` ตั้งเป็น talad-online แล้ว)
 3. ใส่ env: `LINE_LOGIN_CHANNEL_ID`, `LINE_LOGIN_CHANNEL_SECRET`
 
 ### 2. LINE Messaging API — push แจ้งเตือนผู้ขาย
@@ -71,10 +72,12 @@
 
 ---
 
-## 📌 ลำดับแนะนำถัดไป
-1. Rotate `service_role` key (ความปลอดภัย)
-2. Finalize domain (rename Vercel → talad-online หรือผูก custom domain) + อัปเดต `NEXT_PUBLIC_APP_URL`
-3. ตั้ง LINE Login + Messaging (ให้ผู้ขายใช้งานได้จริง)
-4. ต่อ API ตรวจสลิป + OTP
-5. เอกสารกฎหมาย (ทนาย + DBD + บัญชี)
+## 📌 ลำดับแนะนำถัดไป (เหลือเฉพาะที่ต้องใช้บัญชี/ตัวตนของคุณ)
+1. **Rotate `service_role` key** (ความปลอดภัย — เคยอยู่ในแชท) → Supabase dashboard
+2. **ตั้ง LINE Login + Messaging** (ให้ผู้ขายใช้งานได้จริง) → LINE Developers
+3. **ต่อ provider ตรวจสลิป + OTP** (สมัคร + ใส่ env; โค้ดรองรับแล้ว)
+4. **เอกสารกฎหมาย** (ทนายรีวิว Terms/Privacy + จดทะเบียน DBD + ปรึกษาบัญชี VAT)
+5. (ถ้าต้องการ) ผูก **custom domain** เช่น taladonline.com แทน .vercel.app
 6. เปิดตลาดนำร่อง 1 แห่ง → ดันให้ถึง ~100 ผู้ขายจ่ายเงิน
+
+> ✅ Vercel rename → **talad-online.vercel.app** เสร็จแล้ว · อัปสลิปจริงใช้ได้แล้ว
