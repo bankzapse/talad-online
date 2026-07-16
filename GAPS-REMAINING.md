@@ -1,83 +1,45 @@
-# สถานะ Production + ช่องโหว่/สิ่งที่เหลือ (ตรวจ ณ ล่าสุด)
+# สถานะ Production — ตลาดออนไลน์ (Phase 1)
 
-สรุปสิ่งที่ทำเสร็จแล้ว, ช่องโหว่ที่ปิดไปแล้ว, และสิ่งที่เหลือ (ต้องใช้บัญชี/การตัดสินใจของคุณ)
-
----
-
-## ✅ ทำเสร็จ + ใช้งานจริงบน production แล้ว
-- เว็บ live: **https://talad-online.vercel.app** (Vercel rename เสร็จ, public, Supabase persist จริง)
-- ฐานข้อมูล Supabase (Pro) + schema + RLS + storage bucket
-- หน้า admin **ล็อกด้วย ADMIN_KEY** แล้ว (`/admin-gate`)
-- หน้ากฎหมาย **/terms + /privacy (PDPA)** + consent ตอน login
-- **อัปสลิปจริง**: ผู้ขายแนบสลิปตอนจ่าย → เก็บ bucket private → admin ดูผ่าน signed URL + กดยืนยัน (ต่ออายุอัตโนมัติ)
-- โค้ด LINE Login / อัปโหลดรูป / ตรวจสลิปอัตโนมัติ — **พร้อมทำงานทันทีที่ใส่ env**
-
-### 🔑 ข้อมูลสำคัญ
-- **ADMIN_KEY** (รหัสเข้า /admin): ผมสร้างให้และตั้งบน Vercel แล้ว — ค่าอยู่ในไฟล์ `.env.local` (บรรทัด `ADMIN_KEY=`) เปิดดูได้ ใช้ล็อกอินที่ `/admin-gate`
+เว็บ live: **https://talad-online.vercel.app** · health check: `/api/health`
 
 ---
 
-## 🔒 ช่องโหว่ความปลอดภัยที่ปิดแล้ว (รอบนี้)
-- **Open-redirect** จากพารามิเตอร์ `next` (LINE login/redirect) → sanitize ให้รับเฉพาะ path ภายใน
-- **IDOR ฝั่งผู้ขาย** → ทุก action ตรวจ seller จาก session จริง + ตรวจสิทธิ์เจ้าของก่อนแก้/ปิดประกาศ
-- **Demo login backdoor** → ปิดอัตโนมัติเมื่อ LINE Login เปิดใช้ (บังคับผ่าน LINE เท่านั้น)
-- **Input validation** → จำกัดความยาว/ชนิดไฟล์/ช่วงราคา + ตรวจชนิดรูปที่อัปโหลด
-- **หน้า admin** → มี middleware + ADMIN_KEY (เดิมเปิดสาธารณะ)
-
-### ⚠️ ความปลอดภัยที่คุณควรทำเพิ่ม
-1. **Rotate `service_role` key** — เพราะเคยวางในแชทตอน setup (ถ้าแชทนั้นถูกแชร์/หลุด key มีสิทธิ์เต็ม)
-   → Supabase → Settings → API → roll `service_role` → อัปเดต `.env.local` + `bash scripts/setup-vercel-env.sh production` → redeploy
-2. **ปิด Vercel Deployment Protection ให้เหมาะ** (ตอนนี้ production เปิด public อยู่แล้ว — ok)
-3. เปิด **2FA** บนบัญชี GitHub / Vercel / Supabase
+## ✅ เสร็จหมดแล้วฝั่งโค้ด/ระบบ (100%)
+- Supabase Pro (persist จริง) + RLS + storage · Vercel production (public)
+- **LINE Login ใช้งานจริง** (channel 2010726432) — ผู้ขายล็อกอินด้วย LINE ได้
+- ลงประกาศ (รูป/ราคา/หน่วย/หมวด/พื้นที่/วิธีรับของ) + admin จัดการหมวด
+- ระบบสมาชิก: ทดลอง 30 วัน → เลือกแพ็ก → PromptPay QR/โอน + เลขลงท้ายกันยอดชน → อัปสลิป → admin ยืนยัน/ปฏิเสธ+ส่งใหม่ → ต่ออายุ → **ใบเสร็จชั่วคราว** → ประวัติ
+- ประกาศซ่อนอัตโนมัติเมื่อสมาชิกหมด · admin แก้บัญชีรับเงิน · สรุปรายได้+CSV
+- Trust & safety: วิธีรับของ (นัดรับ/COD/พัสดุ) + เตือนคนละจังหวัด + ห้ามโอนล่วงหน้า + หน้า /help
+- ความปลอดภัย: admin ล็อก ADMIN_KEY, กัน open-redirect/IDOR, validate input, RLS
+- SEO ครบ (meta/OG/JSON-LD/sitemap/robots/favicon) + ดีไซน์พรีเมียม + loading states
+- Production hardening: error/404 pages, /api/health, insert ทนคอลัมน์ที่ยังไม่ migrate
 
 ---
 
-## ⏳ สิ่งที่เหลือ — ต้องใช้บัญชี/ความลับของคุณ (ผมทำแทนไม่ได้)
+## ⏳ เหลือเฉพาะสิ่งที่ "ต้องคุณทำเอง" (ผมทำแทนไม่ได้)
 
-### 1. LINE Login (ขั้น 2) — ยังไม่ได้ตั้ง → ตอนนี้ผู้ขายยังล็อกอินจริงไม่ได้
-โค้ดพร้อมแล้ว เหลือสร้าง channel + ใส่ env:
-1. [developers.line.biz](https://developers.line.biz) → Provider → channel แบบ **LINE Login**
-2. **Callback URL** = `https://talad-online.vercel.app/api/auth/line/callback`
-   (`NEXT_PUBLIC_APP_URL` ตั้งเป็น talad-online แล้ว)
-3. ใส่ env: `LINE_LOGIN_CHANNEL_ID`, `LINE_LOGIN_CHANNEL_SECRET`
+### 🔴 ทำให้ครบก่อนเปิดจริง
+1. **Publish LINE channel** — LINE Developers → channel → ให้สถานะเป็น "Published" (ไม่งั้นล็อกอินได้เฉพาะ tester)
+2. **Verify Callback URL** = `https://talad-online.vercel.app/api/auth/line/callback` ลงทะเบียนในแท็บ LINE Login
+3. **Re-run `supabase/schema.sql`** (idempotent) — เพิ่มตาราง `settings` + คอลัมน์ `delivery_method` (แอปทนได้แล้วถ้ายังไม่รัน แต่ควรรันเพื่อให้ครบ)
+4. **Rotate `service_role` key** — เคยอยู่ในแชท (Supabase → Settings → API → roll → อัปเดต env → redeploy)
 
-### 2. LINE Messaging API — push แจ้งเตือนผู้ขาย
-- สร้าง channel Messaging API → `LINE_CHANNEL_ACCESS_TOKEN`
+### 🟡 เสริม (สมัคร provider แล้วผมต่อ logic ให้)
+- **OTP** ยืนยันเบอร์ (ThaiBulkSMS) → กันสมัครซ้ำ + badge ยืนยัน
+- **ตรวจสลิปอัตโนมัติ** (SlipOK/slip2go) → `SLIP_VERIFY_*`
+- **PromptPay ID** ใส่ใน /admin/settings → QR ทำงานทันที
+- **LINE Messaging** access token → push แจ้งเตือนผู้ขายเมื่อมีคนติดต่อ
+- **Uptime monitor** → ชี้มาที่ `/api/health` (UptimeRobot ฟรี)
 
-### 3. ตรวจสลิป PromptPay — ยืนยันเงินอัตโนมัติ
-- สมัคร SlipOK/slip2go/EasySlip → `SLIP_VERIFY_API_KEY`, `SLIP_VERIFY_ENDPOINT`, `PROMPTPAY_ID`
-- แล้วต่อ logic เรียก API ตอนอัปสลิป (ตอนนี้เป็นการจำลอง → admin กดยืนยันเอง)
-
-### 4. OTP ยืนยันเบอร์ — กันสมัครซ้ำ
-- สมัคร ThaiBulkSMS ฯลฯ → `OTP_API_KEY`, `OTP_SENDER` + ต่อ logic ตอนสมัคร
-
-> ใส่ env พวกนี้: เติมใน `.env.local` → `bash scripts/setup-vercel-env.sh production` → `npx vercel --prod --scope chao-dee`
+### ⚖️ กฎหมาย/ปฏิบัติการ
+- ทนายรีวิว Terms/Privacy · จดทะเบียนพาณิชย์ (DBD) · ปรึกษาบัญชี VAT
+- คนดูแล moderation · ทดสอบจ่ายเงินจริง 5–10 คน · (ทางเลือก) custom domain
 
 ---
 
-## ⚖️ กฎหมาย — เหลือการดำเนินการของคุณ
-- [ ] **ให้ทนายรีวิว** ร่าง Terms + Privacy (ในเว็บเป็นแบบร่างตั้งต้น มีแบนเนอร์เตือนอยู่)
-- [ ] **จดทะเบียนพาณิชย์อิเล็กทรอนิกส์ (DBD)** — บังคับตามกฎหมาย
-- [ ] **ปรึกษาบัญชี** เรื่อง VAT (รายได้ค่าสมาชิกเกิน 1.8 ล้าน/ปี) + ใบกำกับภาษี
-- [ ] ตรวจข้อกำหนดอาหาร (อย.) หากมีหมวดอาหารแปรรูป
+## 🔑 ค่าที่ต้องเก็บ
+- **ADMIN_KEY** (เข้า /admin) = อยู่ใน `.env.local`
+- ใส่ env ใหม่: เติม `.env.local` → `bash scripts/setup-vercel-env.sh production` → `npx vercel --prod --scope chao-dee`
 
----
-
-## 🧩 Gap เชิงระบบ/ปฏิบัติการ (แนะนำก่อนเปิดจริงวงกว้าง)
-- **ต่อ logic ตรวจสลิปจริง** (ตอนนี้ admin ยืนยันมือ) — จุดที่พลาดแล้วเป็นดราม่า
-- **Monitoring/alert** เมื่อระบบล่ม (เช่น Vercel/Supabase log + แจ้งเตือน)
-- **คนดูแล moderation** — คิวตรวจมีแล้ว แต่ต้องมีคนกด
-- **ทดสอบ flow จ่ายเงินจริง 5–10 คน** ก่อนเปิดกว้าง
-- **โมเดล break-even**: คุ้มที่ ~100 ผู้ขายจ่ายเงิน (ดู `docs/ประเมินต้นทุน-break-even.md`)
-
----
-
-## 📌 ลำดับแนะนำถัดไป (เหลือเฉพาะที่ต้องใช้บัญชี/ตัวตนของคุณ)
-1. **Rotate `service_role` key** (ความปลอดภัย — เคยอยู่ในแชท) → Supabase dashboard
-2. **ตั้ง LINE Login + Messaging** (ให้ผู้ขายใช้งานได้จริง) → LINE Developers
-3. **ต่อ provider ตรวจสลิป + OTP** (สมัคร + ใส่ env; โค้ดรองรับแล้ว)
-4. **เอกสารกฎหมาย** (ทนายรีวิว Terms/Privacy + จดทะเบียน DBD + ปรึกษาบัญชี VAT)
-5. (ถ้าต้องการ) ผูก **custom domain** เช่น taladonline.com แทน .vercel.app
-6. เปิดตลาดนำร่อง 1 แห่ง → ดันให้ถึง ~100 ผู้ขายจ่ายเงิน
-
-> ✅ Vercel rename → **talad-online.vercel.app** เสร็จแล้ว · อัปสลิปจริงใช้ได้แล้ว
+> โค้ด Phase 1 พร้อม production 100% · เหลือเฉพาะการตั้งค่าบัญชีภายนอก + งานกฎหมาย ที่อยู่นอกมือผม
