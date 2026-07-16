@@ -325,24 +325,29 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
   const deliveryMethod = input.deliveryMethod ?? "meetup";
 
   if (isSupabaseReady()) {
-    const { data } = await sb()
+    const base = {
+      seller_id: input.sellerId,
+      title: input.title,
+      description: input.description,
+      price: input.price,
+      unit: input.unit,
+      category_id: input.categoryId,
+      area_id: input.areaId,
+      images: input.images ?? [],
+      status,
+      flagged_keywords: flag.matched,
+    };
+    let res = await sb()
       .from("listings")
-      .insert({
-        seller_id: input.sellerId,
-        title: input.title,
-        description: input.description,
-        price: input.price,
-        unit: input.unit,
-        category_id: input.categoryId,
-        area_id: input.areaId,
-        images: input.images ?? [],
-        status,
-        delivery_method: deliveryMethod,
-        flagged_keywords: flag.matched,
-      })
+      .insert({ ...base, delivery_method: deliveryMethod })
       .select("*")
       .single();
-    return rowToListing(data!);
+    // เผื่อยังไม่ได้ migrate คอลัมน์ delivery_method → ลงประกาศได้โดยไม่พัง
+    if (res.error) {
+      res = await sb().from("listings").insert(base).select("*").single();
+    }
+    if (res.error || !res.data) throw new Error(res.error?.message ?? "insert failed");
+    return rowToListing(res.data);
   }
 
   const listing: Listing = {
