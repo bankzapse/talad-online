@@ -21,7 +21,9 @@ import {
   getPayment,
   resubmitPaymentSlip,
   updatePaymentSettings,
+  setSellerPhoneVerified,
 } from "@/lib/data";
+import { isValidThaiMobile, normalizePhone, verifyOtp } from "@/lib/otp";
 import type { Unit } from "@/lib/types";
 import { safeNext } from "@/lib/url";
 import { isLineLoginConfigured } from "@/lib/line-login";
@@ -106,6 +108,24 @@ export async function setListingStatusAction(id: string, status: "active" | "sol
   if (!listing || listing.sellerId !== seller!.id) redirect("/sell");
   await updateListingStatus(id, status);
   redirect("/sell");
+}
+
+// ---------- ยืนยันเบอร์ (OTP) ----------
+export async function verifyPhoneAction(formData: FormData) {
+  const seller = await getCurrentSeller();
+  if (!seller) redirect("/login");
+  const phone = normalizePhone(String(formData.get("phone") || ""));
+  const code = String(formData.get("code") || "");
+  if (!isValidThaiMobile(phone)) redirect("/sell/verify-phone?error=invalid");
+
+  const ok = await verifyOtp(phone, code); // dev-mode = ผ่าน, provider = ตรวจจริง
+  if (!ok) redirect("/sell/verify-phone?error=code");
+
+  const res = await setSellerPhoneVerified(seller!.id, phone);
+  if (!res.ok) {
+    redirect(`/sell/verify-phone?error=${res.reason === "phone_taken" ? "taken" : "db"}`);
+  }
+  redirect("/sell?verified=1");
 }
 
 // ---------- membership ----------

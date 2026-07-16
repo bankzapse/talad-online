@@ -15,9 +15,14 @@ const STATUS_LABEL: Record<string, string> = {
   pending_review: "รอตรวจสอบ",
 };
 
-export default async function SellHome() {
+export default async function SellHome({
+  searchParams,
+}: {
+  searchParams: Promise<{ verified?: string }>;
+}) {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
+  const sp = await searchParams;
 
   const [listings, categories, areas] = await Promise.all([
     getSellerListings(seller.id),
@@ -31,6 +36,19 @@ export default async function SellHome() {
 
   return (
     <div>
+      {sp.verified === "1" && (
+        <div className="mb-4 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
+          ✓ ยืนยันเบอร์สำเร็จ! ร้านคุณได้ป้าย &ldquo;ยืนยันเบอร์แล้ว&rdquo;
+        </div>
+      )}
+      {!seller.phoneVerified && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          <span>📱 ยืนยันเบอร์โทรเพื่อรับป้ายน่าเชื่อถือ + กันสวมรอย</span>
+          <Link href="/sell/verify-phone" className="btn-primary px-3 py-1.5 text-xs">
+            ยืนยันเบอร์
+          </Link>
+        </div>
+      )}
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">ร้านของ {seller.displayName}</h1>

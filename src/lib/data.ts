@@ -145,6 +145,37 @@ export async function getSeller(id: string): Promise<Seller | undefined> {
   return db.sellers.find((s) => s.id === id);
 }
 
+export async function getSellerByPhone(phone: string): Promise<Seller | undefined> {
+  if (isSupabaseReady()) {
+    const { data } = await sb().from("sellers").select("*").eq("phone", phone).maybeSingle();
+    return data ? rowToSeller(data) : undefined;
+  }
+  return db.sellers.find((s) => s.phone === phone);
+}
+
+// ยืนยันเบอร์: 1 เบอร์ = 1 บัญชี (กันสมัครซ้ำ) → set phone + phone_verified
+export async function setSellerPhoneVerified(
+  sellerId: string,
+  phone: string
+): Promise<{ ok: boolean; reason?: string }> {
+  const owner = await getSellerByPhone(phone);
+  if (owner && owner.id !== sellerId) return { ok: false, reason: "phone_taken" };
+  if (isSupabaseReady()) {
+    const { error } = await sb()
+      .from("sellers")
+      .update({ phone, phone_verified: true })
+      .eq("id", sellerId);
+    if (error) return { ok: false, reason: "db_error" };
+    return { ok: true };
+  }
+  const s = db.sellers.find((x) => x.id === sellerId);
+  if (s) {
+    s.phone = phone;
+    s.phoneVerified = true;
+  }
+  return { ok: true };
+}
+
 export async function getSellerByLineId(lineUserId: string): Promise<Seller | undefined> {
   if (isSupabaseReady()) {
     const { data } = await sb()
