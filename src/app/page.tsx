@@ -33,37 +33,36 @@ export default async function Home({
   const filtering = Boolean(sp.category || sp.area || sp.q);
 
   return (
-    <div className="space-y-10">
-      {/* ---------- HERO ---------- */}
-      <section className="relative overflow-hidden rounded-3xl shadow-lift">
+    <div className="space-y-6">
+      {/* ---------- HERO (คอมแพค — ดันสินค้าขึ้นมาให้เห็นเร็ว) ---------- */}
+      <section className="relative overflow-hidden rounded-2xl shadow-soft">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={HERO_IMG} alt="ตลาดสด ผัก ผลไม้" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-tr from-brand-darker/95 via-brand-dark/80 to-brand/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-darker/95 via-brand-dark/85 to-brand-dark/55" />
         </div>
 
-        <div className="relative px-6 py-14 sm:px-12 sm:py-20">
-          <span className="chip border-white/25 bg-white/15 text-white backdrop-blur">
-            🌿 สดใหม่จากตลาดใกล้บ้าน
-          </span>
-          <h1 className="mt-4 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl">
-            ของสด · มือสอง<br />จากตลาดใกล้คุณ
-          </h1>
-          <p className="mt-4 max-w-xl text-sm text-white/90 sm:text-base">
-            เจอของถูกใจ กด &ldquo;ติดต่อ&rdquo; แล้วนัดเจอจ่ายเงินสด —
-            ผู้ขายได้รับแจ้งเตือนทาง LINE ทันที ค้นหาตามพื้นที่ เรียงราคาได้
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <a href="#listings" className="btn-gold">🛒 เริ่มเลือกซื้อ</a>
-            <Link href="/login" className="btn bg-white/95 text-brand-dark hover:bg-white">
-              🏪 ลงขายสินค้า
-            </Link>
+        <div className="relative flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-6">
+          <div className="min-w-0">
+            <h1 className="text-lg font-extrabold leading-snug tracking-tight text-white sm:text-2xl">
+              ของสด · มือสอง จากตลาดใกล้คุณ
+            </h1>
+            <p className="mt-1 text-xs text-white/85 sm:text-sm">
+              นัดเจอจ่ายเงินสด · ผู้ขายได้แจ้งเตือนทาง LINE ทันที · กรองตามพื้นที่ เรียงราคาได้
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/75">
+              <span><b className="text-white">{listings.length}</b> ประกาศ</span>
+              <span>·</span>
+              <span><b className="text-white">{areas.length}</b> ตลาด/พื้นที่</span>
+              <span>·</span>
+              <span><b className="text-white">{categories.length}</b> หมวด</span>
+            </div>
           </div>
-
-          <div className="mt-9 flex flex-wrap gap-6 text-white">
-            <Stat n={listings.length} label="ประกาศ" />
-            <Stat n={areas.length} label="ตลาด/พื้นที่" />
-            <Stat n={categories.length} label="หมวดสินค้า" />
+          <div className="flex shrink-0 gap-2">
+            <a href="#listings" className="btn-gold px-4 py-2 text-sm">🛒 เลือกซื้อ</a>
+            <Link href="/login" className="btn bg-white/95 px-4 py-2 text-sm text-brand-dark hover:bg-white">
+              🏪 ลงขาย
+            </Link>
           </div>
         </div>
       </section>
@@ -134,7 +133,7 @@ export default async function Home({
       </section>
 
       {/* ---------- HOW IT WORKS ---------- */}
-      <section className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-soft sm:p-10">
+      <section className="mt-4 rounded-3xl border border-slate-200/70 bg-white p-6 shadow-soft sm:p-10">
         <h2 className="section-title text-center">ซื้อขายง่ายใน 3 ขั้นตอน</h2>
         <div className="mt-8 grid gap-6 sm:grid-cols-3">
           <Step no="1" emoji="🔍" title="ค้นหาของถูกใจ" desc="กรองตามหมวดและพื้นที่ เรียงราคาต่ำ–สูง เห็นหน่วยชัด" />
@@ -157,15 +156,6 @@ export default async function Home({
           </Link>
         </div>
       </section>
-    </div>
-  );
-}
-
-function Stat({ n, label }: { n: number; label: string }) {
-  return (
-    <div>
-      <div className="text-2xl font-extrabold sm:text-3xl">{n}</div>
-      <div className="text-xs text-white/75">{label}</div>
     </div>
   );
 }
