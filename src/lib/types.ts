@@ -191,6 +191,7 @@ export interface Report {
   id: string;
   listingId: string;
   reason: string;
+  buyerKey: string;
   createdAt: string;
 }
 

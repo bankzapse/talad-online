@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { getServiceClient, isSupabaseReady } from "./supabase/admin";
 import { db } from "./store";
+import { ADMIN_COOKIE } from "./auth";
 
 // -----------------------------------------------------------------------------
 // รหัสผ่าน admin — เก็บเป็น hash ใน DB (ตาราง settings key='admin')
@@ -56,4 +59,30 @@ export async function verifyAdminPassword(pw: string): Promise<boolean> {
 export async function adminCookieValue(): Promise<string> {
   const dbHash = await getAdminHash();
   return dbHash ?? process.env.ADMIN_KEY ?? "";
+}
+
+// เทียบแบบ constant-time — กัน timing attack เดารหัสทีละตัว
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// ตรวจสิทธิ์ admin จาก cookie จริง ๆ (ไม่ใช่แค่ "มี cookie อยู่")
+export async function isAdmin(): Promise<boolean> {
+  const key = process.env.ADMIN_KEY;
+  if (!key) return false; // ไม่ตั้ง ADMIN_KEY = ไม่มีใครเป็น admin (fail closed)
+  const jar = await cookies();
+  const v = jar.get(ADMIN_COOKIE)?.value;
+  return Boolean(v && safeEqual(v, key));
+}
+
+// ใช้เป็นบรรทัดแรกของทุก server action ฝั่ง admin
+//
+// เหตุผล: middleware ป้องกันแค่ "หน้า" /admin/* แต่ server action เป็น POST
+// ที่ยิงเข้า route ไหนก็ได้ที่ action ถูก register ไว้ (รวมหน้าแรก `/` ซึ่ง
+// middleware ไม่ match) ถ้าไม่ตรวจในตัว action เอง คนนอกยิง action ตรง ๆ ได้เลย
+export async function requireAdmin(): Promise<void> {
+  if (!(await isAdmin())) redirect("/admin-gate");
 }

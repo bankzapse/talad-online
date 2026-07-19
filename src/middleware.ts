@@ -1,11 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-// ป้องกันหน้า /admin — เปิดใช้เมื่อกำหนด ADMIN_KEY (ไม่งั้นเปิดโหมด demo)
+// ป้องกันหน้า /admin
+// ถ้าไม่ได้ตั้ง ADMIN_KEY → ปิดตายบน production (fail closed)
+// เปิดโหมด demo ได้เฉพาะตอน dev เท่านั้น — env หายบน production ต้องไม่เท่ากับเปิดให้ทุกคน
 export function middleware(req: NextRequest) {
   const adminKey = process.env.ADMIN_KEY;
-  if (!adminKey) return NextResponse.next(); // demo — ไม่ล็อก
-
   const path = req.nextUrl.pathname;
+
+  if (!adminKey) {
+    if (process.env.NODE_ENV !== "production") return NextResponse.next(); // dev demo
+    const url = req.nextUrl.clone();
+    url.pathname = "/admin-gate";
+    return NextResponse.redirect(url);
+  }
+
   if (path === "/admin-gate") return NextResponse.next();
 
   const ok = req.cookies.get("admin_ok")?.value === adminKey;

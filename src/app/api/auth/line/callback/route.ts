@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { exchangeCodeForToken, getLineProfile } from "@/lib/line-login";
 import { upsertSellerFromLine } from "@/lib/data";
 import { SESSION_COOKIE, BUYER_COOKIE } from "@/lib/auth";
+import { createSessionToken } from "@/lib/session";
 import { safeNext } from "@/lib/url";
 
 export async function GET(req: Request) {
@@ -35,10 +36,10 @@ export async function GET(req: Request) {
 
   if (saved.buyer) {
     // ผู้ซื้อ — ใช้ LINE userId เป็น key (gate ปุ่มติดต่อ + rate-limit)
-    jar.set(BUYER_COOKIE, profile.userId, opts);
+    jar.set(BUYER_COOKIE, createSessionToken(profile.userId), opts);
   } else {
     const seller = await upsertSellerFromLine(profile.userId, profile.displayName);
-    jar.set(SESSION_COOKIE, seller.id, opts);
+    jar.set(SESSION_COOKIE, createSessionToken(seller.id), opts);
   }
 
   return NextResponse.redirect(new URL(safeNext(saved.next), origin));

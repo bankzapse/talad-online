@@ -28,7 +28,8 @@ export async function pushToLineUser(
 
   if (!token || !lineUserId || !lineUserId.startsWith("U")) {
     // demo mode — ยังไม่ได้ตั้งค่า LINE หรือปลายทางยังไม่ผูก LINE
-    console.log(`[LINE push:demo] → ${label}: ${message}`);
+    // ไม่ log เนื้อข้อความ — มีชื่อ/เบอร์ผู้ซื้ออยู่ข้างใน (PDPA)
+    console.log(`[LINE push:demo] → ${label} (ข้อความถูกซ่อน ${message.length} ตัวอักษร)`);
     return "logged";
   }
 

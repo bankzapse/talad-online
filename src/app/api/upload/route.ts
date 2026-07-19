@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getServiceClient, isSupabaseReady } from "@/lib/supabase/admin";
 import { getCurrentSeller } from "@/lib/auth";
@@ -28,7 +29,8 @@ export async function POST(req: Request) {
   }
 
   const ext = file.name.split(".").pop() || "jpg";
-  const path = `${seller.id}/${Math.random().toString(36).slice(2)}.${ext}`;
+  // ห้ามใส่ seller.id ลง path — bucket นี้เป็น public, id จะโผล่ใน URL รูปให้ทุกคนเห็น
+  const path = `${randomUUID()}.${ext}`;
   const sb = getServiceClient()!;
   const { error } = await sb.storage
     .from("listings")

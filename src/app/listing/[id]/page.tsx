@@ -8,7 +8,7 @@ import {
   isSellerActive,
 } from "@/lib/data";
 import { formatPrice, timeAgo } from "@/lib/format";
-import { isBuyerLoggedIn } from "@/lib/auth";
+import { isBuyerLoggedIn, getCurrentSeller } from "@/lib/auth";
 import TrustBadge from "@/components/TrustBadge";
 import ContactButton from "@/components/ContactButton";
 import ReportButton from "@/components/ReportButton";
@@ -23,7 +23,12 @@ export default async function ListingDetail({
 }) {
   const { id } = await params;
   const listing = await getListing(id);
-  if (!listing || listing.status === "hidden") notFound();
+  // แสดงเฉพาะประกาศที่อนุมัติแล้ว — ร่าง/รอตรวจ/ถูกระงับ ต้องไม่เปิดดูได้ผ่าน URL ตรง
+  // (ไม่งั้นแชร์ลิงก์ขายได้เลยโดยไม่ต้องผ่านการอนุมัติ)
+  const viewer = await getCurrentSeller();
+  const isOwner = viewer?.id === listing?.sellerId;
+  if (!listing) notFound();
+  if (listing.status !== "active" && listing.status !== "sold" && !isOwner) notFound();
 
   const [cat, seller, buyerLoggedIn] = await Promise.all([
     getCategory(listing.categoryId),

@@ -12,6 +12,7 @@ import {
 import {
   createListing,
   updateListingStatus,
+  approveListing,
   getListing,
   startTrial,
   createPayment,
@@ -38,9 +39,11 @@ import {
   submitListingForReview,
   rejectListing,
   createOrder,
+  hasOpenOrder,
   getOrder,
   updateOrder,
   getSeller,
+  isSellerActive,
 } from "@/lib/data";
 import { isValidThaiMobile, normalizePhone, verifyOtp } from "@/lib/otp";
 import type { Unit, DeliveryMethod } from "@/lib/types";
@@ -50,14 +53,19 @@ import { safeNext } from "@/lib/url";
 import { isLineLoginConfigured } from "@/lib/line-login";
 import { verifySlipAmount } from "@/lib/slip";
 import { provinceName, districtName, subdistrictName, isValidGeo } from "@/lib/geo";
-import { setAdminPassword } from "@/lib/admin-auth";
+import { setAdminPassword, requireAdmin } from "@/lib/admin-auth";
+import { createSessionToken } from "@/lib/session";
 
 // ---------- auth (LINE Login stub) ----------
 // เมื่อ LINE Login เปิดใช้จริงแล้ว → ปิด demo login ทั้งหมด (บังคับผ่าน LINE เท่านั้น)
 export async function loginAsSeller(sellerId: string, next?: string) {
   if (isLineLoginConfigured()) redirect("/login");
   const jar = await cookies();
-  jar.set(SESSION_COOKIE, sellerId, { httpOnly: true, path: "/", maxAge: 60 * 60 * 24 * 30 });
+  jar.set(SESSION_COOKIE, createSessionToken(sellerId), {
+    httpOnly: true,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
   redirect(safeNext(next, "/sell"));
 }
 
@@ -65,7 +73,7 @@ export async function loginAsBuyer(next?: string) {
   if (isLineLoginConfigured()) redirect("/login?buyer=1");
   const jar = await cookies();
   // ผูกกับ id สุ่ม (จริงคือ LINE userId) — ใช้เป็น key rate-limit ปุ่มติดต่อ
-  jar.set(BUYER_COOKIE, `buyer-${Math.random().toString(36).slice(2, 10)}`, {
+  jar.set(BUYER_COOKIE, createSessionToken(`buyer-${Math.random().toString(36).slice(2, 10)}`), {
     httpOnly: true,
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
@@ -175,10 +183,12 @@ export async function createListingAction(_sellerId: string, formData: FormData)
 export async function submitListingAction(id: string) {
   const seller = await getCurrentSeller();
   if (!seller || seller.blocked) redirect("/login");
+  // สมาชิกหมดอายุ → ส่งไปก็แสดงไม่ได้ ให้ไปต่ออายุก่อน (ไม่กินเวลาทีมงานตรวจ)
+  if (!isSellerActive(seller)) redirect("/sell/membership?expired=1");
   const listing = await getListing(id);
   if (!listing || listing.sellerId !== seller!.id) redirect("/sell");
-  // ส่งได้เฉพาะฉบับร่าง — กันกดซ้ำตอนที่รออนุมัติหรืออนุมัติแล้ว
-  if (listing!.status !== "draft") redirect("/sell");
+  // ส่งได้จากฉบับร่าง และจากที่ถูกระงับ (แก้แล้วขอตรวจใหม่) — กันกดซ้ำตอนรออนุมัติ/อนุมัติแล้ว
+  if (listing!.status !== "draft" && listing!.status !== "hidden") redirect("/sell");
   await submitListingForReview(id);
   redirect("/sell?submitted=1");
 }
@@ -189,6 +199,16 @@ export async function setListingStatusAction(id: string, status: "active" | "sol
   const listing = await getListing(id);
   // ตรวจสิทธิ์เจ้าของ — กันแก้ประกาศคนอื่น (IDOR)
   if (!listing || listing.sellerId !== seller!.id) redirect("/sell");
+
+  // กันข้ามขั้นตอนอนุมัติ: ปุ่มนี้ใช้สลับ ขายแล้ว↔เปิดขายอีก เท่านั้น
+  // ประกาศที่ยังเป็นร่าง/รอตรวจ/ถูกระงับ จะยิงฟอร์มให้กลายเป็น active ไม่ได้
+  const from = listing!.status;
+  const allowed =
+    (from === "active" && (status === "sold" || status === "hidden")) ||
+    (from === "sold" && status === "active") ||
+    (from === "hidden" && status === "hidden");
+  if (!allowed) redirect("/sell?error=state");
+
   await updateListingStatus(id, status);
   redirect("/sell");
 }
@@ -228,6 +248,7 @@ export async function reviewVerificationAction(
   approve: boolean,
   formData?: FormData
 ) {
+  await requireAdmin();
   const note = formData ? String(formData.get("note") || "") : "";
   await reviewShopVerification(sellerId, approve, note);
   redirect("/admin/verify");
@@ -235,6 +256,7 @@ export async function reviewVerificationAction(
 
 // บริษัทยกเลิกการยืนยันร้าน — ร้านจะใช้วิธี "โอนก่อน" ไม่ได้อีก
 export async function revokeVerificationAction(sellerId: string, formData: FormData) {
+  await requireAdmin();
   const reason = String(formData.get("reason") || "").trim().slice(0, 200);
   await revokeShopVerification(sellerId, reason);
   redirect("/admin/verify");
@@ -305,58 +327,70 @@ export async function resubmitSlipAction(paymentId: string, formData: FormData) 
 
 // ---------- admin ----------
 export async function verifyPaymentAction(paymentId: string) {
+  await requireAdmin();
   await verifyPayment(paymentId);
   redirect("/admin/payments");
 }
 export async function rejectPaymentAction(paymentId: string) {
+  await requireAdmin();
   await rejectPayment(paymentId, "ยอด/สลิปไม่ตรง");
   redirect("/admin/payments");
 }
 export async function moderateAction(id: string, action: "approve" | "remove") {
-  await updateListingStatus(id, action === "approve" ? "active" : "hidden");
+  await requireAdmin();
+  if (action === "approve") await approveListing(id);
+  else await updateListingStatus(id, "hidden");
   redirect("/admin/moderation");
 }
 
 // ไม่อนุมัติ — ตีกลับให้ผู้ขายแก้ พร้อมเหตุผล (ต่างจาก "ระงับ" ที่ปิดถาวร)
 export async function rejectListingAction(id: string, formData: FormData) {
+  await requireAdmin();
   const note = String(formData.get("note") || "").trim().slice(0, 200);
   await rejectListing(id, note);
   redirect("/admin/moderation");
 }
 export async function adjustExpiryAction(sellerId: string, formData: FormData) {
+  await requireAdmin();
   const days = Number(formData.get("days") || 0);
   const reason = String(formData.get("reason") || "ปรับด้วยมือ");
   await adjustExpiry(sellerId, days, reason);
   redirect("/admin/payments");
 }
 export async function toggleBlockAction(sellerId: string, blocked: boolean) {
+  await requireAdmin();
   await setSellerBlocked(sellerId, blocked);
   redirect("/admin");
 }
 // ---------- admin: หมวดหมู่ ----------
 export async function createCategoryAction(formData: FormData) {
+  await requireAdmin();
   const name = String(formData.get("name") || "").trim().slice(0, 40);
   const emoji = String(formData.get("emoji") || "").trim().slice(0, 4);
   if (name) await createCategory(name, emoji);
   redirect("/admin/categories");
 }
 export async function updateCategoryAction(id: string, formData: FormData) {
+  await requireAdmin();
   const name = String(formData.get("name") || "").trim().slice(0, 40);
   const emoji = String(formData.get("emoji") || "").trim().slice(0, 4);
   if (name) await updateCategory(id, name, emoji);
   redirect("/admin/categories");
 }
 export async function deleteCategoryAction(id: string) {
+  await requireAdmin();
   const ok = await deleteCategory(id);
   redirect(ok ? "/admin/categories" : "/admin/categories?error=inuse");
 }
 
 export async function toggleCompanyVerifyAction(sellerId: string, verified: boolean) {
+  await requireAdmin();
   await setSellerCompanyVerified(sellerId, verified);
   redirect("/admin");
 }
 
 export async function saveAdminPasswordAction(formData: FormData) {
+  await requireAdmin();
   const pw = String(formData.get("password") || "");
   const confirm = String(formData.get("confirm") || "");
   if (pw.length < 8) redirect("/admin/settings?error=pwshort");
@@ -366,6 +400,7 @@ export async function saveAdminPasswordAction(formData: FormData) {
 }
 
 export async function savePaymentSettingsAction(formData: FormData) {
+  await requireAdmin();
   const ok = await updatePaymentSettings({
     bankShortName: String(formData.get("bankShortName") || "").trim().slice(0, 60),
     bankBranch: String(formData.get("bankBranch") || "").trim().slice(0, 80),
@@ -377,6 +412,7 @@ export async function savePaymentSettingsAction(formData: FormData) {
 }
 
 export async function savePackageAction(formData: FormData) {
+  await requireAdmin();
   const id = String(formData.get("id"));
   const existing = (await getPackages()).find((p) => p.id === id);
   await upsertPackage({
@@ -449,6 +485,7 @@ export async function deleteListingAction(id: string) {
 
 // ---------- จัดเรียงหมวดสินค้า (admin) ----------
 export async function moveCategoryAction(id: string, dir: -1 | 1) {
+  await requireAdmin();
   await moveCategory(id, dir);
   redirect("/admin/categories");
 }
@@ -461,6 +498,13 @@ export async function createOrderAction(listingId: string, formData: FormData) {
 
   const listing = await getListing(listingId);
   if (!listing || listing.status !== "active") redirect(`/listing/${listingId}`);
+  // ร้านต้องยังใช้งานได้จริง (สมาชิกไม่หมด/ไม่ถูกแบน) — หน้าเช็คแล้วแต่ action ต้องเช็คเองด้วย
+  const shop = await getSeller(listing!.sellerId);
+  if (!shop || !isSellerActive(shop)) redirect(`/listing/${listingId}`);
+  // ห้ามสั่งของร้านตัวเอง
+  if (shop!.lineUserId && shop!.lineUserId === buyerKey) redirect(`/listing/${listingId}`);
+  // กันสั่งซ้ำรัว ๆ — มีออร์เดอร์ที่ยังรอร้านยืนยันของประกาศนี้อยู่แล้ว
+  if (await hasOpenOrder(buyerKey!, listing!.id)) redirect("/orders?dup=1");
 
   const back = `/listing/${listingId}/order`;
   const buyerName = String(formData.get("buyerName") || "").trim().slice(0, 80);
@@ -493,27 +537,41 @@ export async function createOrderAction(listingId: string, formData: FormData) {
   if (!order) redirect(`${back}?error=db`);
 
   // แจ้งผู้ขายทาง LINE ว่ามีออร์เดอร์ใหม่
-  const seller = await getSeller(listing!.sellerId);
   await pushToLineUser(
-    seller?.lineUserId,
+    shop!.lineUserId,
     `🛒 มีรายการสั่งซื้อใหม่!\n${listing!.title} × ${qty}\nผู้ซื้อ: ${buyerName} (${buyerPhone})\nดูรายละเอียด: /sell/orders`,
-    seller?.displayName
+    shop!.displayName
   );
 
   redirect("/orders?placed=1");
 }
 
 // ตรวจว่าออร์เดอร์นี้เป็นของผู้ขายที่ล็อกอินอยู่จริง (กัน IDOR)
-async function ownedOrder(orderId: string) {
+// ลำดับสถานะที่เปลี่ยนได้จริง — กันยิงฟอร์มซ้ำย้อนสถานะ (เช่น ยกเลิกไปแล้วกลับมายืนยัน)
+const ORDER_FLOW: Record<string, string[]> = {
+  pending: ["confirmed", "shipped", "cancelled"],
+  confirmed: ["shipped", "completed", "cancelled"],
+  shipped: ["completed", "cancelled"],
+  completed: [],
+  cancelled: [],
+};
+
+// ตรวจว่าออร์เดอร์นี้เป็นของผู้ขายที่ล็อกอินอยู่จริง (กัน IDOR)
+// + ร้านที่ถูกระงับต้องแตะออร์เดอร์ไม่ได้ (รวมถึงอ่านชื่อ/เบอร์/ที่อยู่ผู้ซื้อ)
+async function ownedOrder(orderId: string, to?: string) {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
+  if (seller!.blocked) redirect("/sell");
   const order = await getOrder(orderId);
   if (!order || order.sellerId !== seller!.id) redirect("/sell/orders");
+  if (to && !(ORDER_FLOW[order!.status] ?? []).includes(to)) {
+    redirect("/sell/orders?error=state");
+  }
   return { seller: seller!, order: order! };
 }
 
 export async function confirmOrderAction(orderId: string) {
-  const { seller, order } = await ownedOrder(orderId);
+  const { seller, order } = await ownedOrder(orderId, "confirmed");
   await updateOrder(orderId, {
     status: "confirmed",
     confirmedAt: new Date().toISOString(),
@@ -528,7 +586,7 @@ export async function confirmOrderAction(orderId: string) {
 
 // ใส่เลขพัสดุ → สถานะเป็น "จัดส่งแล้ว" · นัดรับไม่ต้องใส่เลขพัสดุ
 export async function shipOrderAction(orderId: string, formData: FormData) {
-  const { seller, order } = await ownedOrder(orderId);
+  const { seller, order } = await ownedOrder(orderId, "shipped");
   const trackingNo = String(formData.get("trackingNo") || "").trim().slice(0, 60);
   const carrier = String(formData.get("carrier") || "").trim().slice(0, 40);
 
@@ -554,13 +612,13 @@ export async function shipOrderAction(orderId: string, formData: FormData) {
 }
 
 export async function completeOrderAction(orderId: string) {
-  await ownedOrder(orderId);
+  await ownedOrder(orderId, "completed");
   await updateOrder(orderId, { status: "completed" });
   redirect("/sell/orders");
 }
 
 export async function cancelOrderAction(orderId: string, formData: FormData) {
-  const { seller, order } = await ownedOrder(orderId);
+  const { seller, order } = await ownedOrder(orderId, "cancelled");
   const reason = String(formData.get("reason") || "").trim().slice(0, 200);
   await updateOrder(orderId, { status: "cancelled", cancelReason: reason || null });
   await pushToLineUser(
@@ -569,4 +627,28 @@ export async function cancelOrderAction(orderId: string, formData: FormData) {
     "ผู้ซื้อ"
   );
   redirect("/sell/orders");
+}
+
+// ผู้ซื้อยกเลิกออร์เดอร์ของตัวเอง — ได้เฉพาะที่ร้านยังไม่จัดส่ง
+// ไม่งั้นถ้าร้านเงียบ ผู้ซื้อจะค้างอยู่ที่ "รอร้านยืนยัน" ตลอดไปโดยไม่มีทางออก
+export async function cancelOwnOrderAction(orderId: string, formData: FormData) {
+  const buyerKey = await getBuyerKey();
+  if (!buyerKey) redirect("/login?buyer=1&next=/orders");
+  const order = await getOrder(orderId);
+  if (!order || order.buyerKey !== buyerKey) redirect("/orders");
+  if (order!.status !== "pending" && order!.status !== "confirmed") redirect("/orders?error=state");
+
+  const reason = String(formData.get("reason") || "").trim().slice(0, 200);
+  await updateOrder(orderId, {
+    status: "cancelled",
+    cancelReason: reason ? `ผู้ซื้อยกเลิก: ${reason}` : "ผู้ซื้อยกเลิก",
+  });
+
+  const shop = await getSeller(order!.sellerId);
+  await pushToLineUser(
+    shop?.lineUserId,
+    `❌ ผู้ซื้อยกเลิกรายการสั่งซื้อ\n${order!.listingTitle} × ${order!.qty}${reason ? `\nเหตุผล: ${reason}` : ""}`,
+    shop?.displayName
+  );
+  redirect("/orders?cancelled=1");
 }

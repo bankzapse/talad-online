@@ -517,7 +517,12 @@ export async function updateListing(id: string, input: EditListingInput): Promis
       patch.status = "pending_review";
       patch.review_note = null;
     }
-    await sb().from("listings").update(patch).eq("id", id);
+    const res = await sb().from("listings").update(patch).eq("id", id);
+    if (res.error) {
+      // เผื่อคอลัมน์ใหม่ยังไม่ถูก migrate → บันทึกส่วนที่เหลือ ไม่ให้ผู้ขายเห็น "บันทึกแล้ว" ทั้งที่ไม่ได้บันทึก
+      const { review_note: _n, delivery_method: _d, ...rest } = patch;
+      await sb().from("listings").update(rest).eq("id", id);
+    }
     return;
   }
 
@@ -606,9 +611,48 @@ export async function updateListingStatus(id: string, status: Listing["status"])
   if (l) l.status = status;
 }
 
-export async function reportListing(listingId: string, reason: string): Promise<void> {
+// admin อนุมัติ → เคลียร์จำนวนรายงานด้วย
+// ไม่งั้นประกาศที่เคยถูกรายงานจะค้างในคิวตรวจตลอดไป (คิวเลือกจาก report_count > 0)
+// และพอมีคนรายงานเพิ่มอีกครั้งเดียวก็เด้งกลับเข้า pending_review ทันที
+export async function approveListing(id: string): Promise<void> {
   if (isSupabaseReady()) {
-    await sb().from("reports").insert({ listing_id: listingId, reason });
+    const res = await sb()
+      .from("listings")
+      .update({ status: "active", report_count: 0, review_note: null })
+      .eq("id", id);
+    if (res.error) await sb().from("listings").update({ status: "active", report_count: 0 }).eq("id", id);
+    return;
+  }
+  const l = db.listings.find((x) => x.id === id);
+  if (l) {
+    l.status = "active";
+    l.reportCount = 0;
+    l.reviewNote = null;
+  }
+}
+
+// 1 คน = 1 รายงานต่อประกาศ (กันยิงซ้ำปลดประกาศคู่แข่ง)
+export async function hasReported(listingId: string, buyerKey: string): Promise<boolean> {
+  if (isSupabaseReady()) {
+    const { count } = await sb()
+      .from("reports")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listingId)
+      .eq("buyer_key", buyerKey);
+    return (count ?? 0) > 0;
+  }
+  return db.reports.some((r) => r.listingId === listingId && r.buyerKey === buyerKey);
+}
+
+export async function reportListing(
+  listingId: string,
+  reason: string,
+  buyerKey: string
+): Promise<void> {
+  if (isSupabaseReady()) {
+    const ins = await sb().from("reports").insert({ listing_id: listingId, reason, buyer_key: buyerKey });
+    // เผื่อยังไม่ได้ migrate คอลัมน์ buyer_key
+    if (ins.error) await sb().from("reports").insert({ listing_id: listingId, reason });
     const { data } = await sb()
       .from("listings")
       .select("report_count,status")
@@ -625,6 +669,7 @@ export async function reportListing(listingId: string, reason: string): Promise<
     id: `r-${Math.random().toString(36).slice(2, 8)}`,
     listingId,
     reason,
+    buyerKey,
     createdAt: new Date().toISOString(),
   });
   const l = db.listings.find((x) => x.id === listingId);
@@ -1228,6 +1273,25 @@ export async function getBuyerOrders(buyerKey: string): Promise<Order[]> {
     return (data ?? []).map(rowToOrder);
   }
   return db.orders.filter((o) => o.buyerKey === buyerKey);
+}
+
+// มีออร์เดอร์ของประกาศนี้ที่ยังไม่จบค้างอยู่ไหม — กันกดสั่งซ้ำรัว ๆ (สแปมร้าน + เปลือง LINE push)
+export async function hasOpenOrder(buyerKey: string, listingId: string): Promise<boolean> {
+  if (isSupabaseReady()) {
+    const { count } = await sb()
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("buyer_key", buyerKey)
+      .eq("listing_id", listingId)
+      .in("status", ["pending", "confirmed"]);
+    return (count ?? 0) > 0;
+  }
+  return db.orders.some(
+    (o) =>
+      o.buyerKey === buyerKey &&
+      o.listingId === listingId &&
+      (o.status === "pending" || o.status === "confirmed")
+  );
 }
 
 export async function getOrder(id: string): Promise<Order | undefined> {
