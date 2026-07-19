@@ -215,6 +215,8 @@ export async function upsertSellerFromLine(
       trialUsed: false,
       blocked: false,
       companyVerified: false,
+      shopName: null,
+      shopAbout: null,
       lineUserId,
     };
     db.sellers.push(s);
@@ -695,6 +697,26 @@ export async function setSellerBlocked(sellerId: string, blocked: boolean): Prom
     if (local) local.blocked = blocked;
   }
   await logAdmin(blocked ? "แบนผู้ใช้" : "ปลดแบน", s?.displayName ?? sellerId);
+}
+
+export async function updateShopProfile(
+  sellerId: string,
+  shopName: string,
+  shopAbout: string
+): Promise<boolean> {
+  if (isSupabaseReady()) {
+    const { error } = await sb()
+      .from("sellers")
+      .update({ shop_name: shopName, shop_about: shopAbout })
+      .eq("id", sellerId);
+    return !error;
+  }
+  const s = db.sellers.find((x) => x.id === sellerId);
+  if (s) {
+    s.shopName = shopName;
+    s.shopAbout = shopAbout;
+  }
+  return true;
 }
 
 export async function setSellerCompanyVerified(sellerId: string, verified: boolean): Promise<void> {

@@ -11,9 +11,16 @@ import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewListing() {
+export default async function NewListing({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
+  // ต้องกรอกข้อมูลร้าน (ชื่อร้าน) ให้เสร็จก่อน
+  if (!seller.shopName) redirect("/sell/profile?next=/sell/new");
+  const sp = await searchParams;
 
   const categories = await getCategories();
   const provinces = getProvinces();
@@ -29,6 +36,22 @@ export default async function NewListing() {
         <p className="mt-1 text-xs text-slate-400">
           (จริงจะเป็นฟอร์ม LIFF ในแอป LINE — ที่นี่คือฟอร์มเว็บเทียบเท่า)
         </p>
+
+        {sp.error === "prepay" && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+            วิธีรับของที่ต้องโอนก่อน ใช้ได้เฉพาะร้านที่ยืนยันกับบริษัทแล้ว
+          </div>
+        )}
+        {sp.error === "required" && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+            กรอกข้อมูลที่จำเป็นให้ครบ (ชื่อสินค้า / หมวด / ชื่อตลาด)
+          </div>
+        )}
+        {sp.error === "area" && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+            กรุณาเลือก จังหวัด / อำเภอ / ตำบล ให้ครบ
+          </div>
+        )}
 
         <form action={action} className="mt-4 space-y-3">
           <div>
@@ -95,7 +118,8 @@ export default async function NewListing() {
             </p>
             {!seller.companyVerified && (
               <p className="mt-1 rounded-lg bg-slate-50 p-2 text-xs text-slate-500">
-                🔒 ตัวเลือก <b>&ldquo;โอนเงินก่อนรับสินค้า&rdquo;</b> ใช้ได้เฉพาะร้านที่ยืนยันตัวตนกับบริษัทแล้ว —
+                🔒 ตัวเลือกที่ผู้ซื้อต้อง<b>โอนก่อน</b> (ส่งพัสดุ / โอนเงินก่อนรับสินค้า)
+                ใช้ได้เฉพาะร้านที่ยืนยันตัวตนกับบริษัทแล้ว —
                 ติดต่อทีมงานที่หน้า <a href="/help" className="underline">ช่วยเหลือ</a> เพื่อขอยืนยันร้าน
               </p>
             )}

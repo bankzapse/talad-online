@@ -23,6 +23,7 @@ import {
   updatePaymentSettings,
   setSellerPhoneVerified,
   setSellerCompanyVerified,
+  updateShopProfile,
 } from "@/lib/data";
 import { isValidThaiMobile, normalizePhone, verifyOtp } from "@/lib/otp";
 import type { Unit } from "@/lib/types";
@@ -65,6 +66,8 @@ export async function logout() {
 export async function createListingAction(_sellerId: string, formData: FormData) {
   const seller = await getCurrentSeller();
   if (!seller || seller.blocked) redirect("/login");
+  // ต้องกรอกข้อมูลร้าน (ชื่อร้าน) ก่อนลงประกาศ
+  if (!seller.shopName) redirect("/sell/profile?next=/sell/new");
 
   let images: string[] = [];
   try {
@@ -122,6 +125,18 @@ export async function setListingStatusAction(id: string, status: "active" | "sol
   if (!listing || listing.sellerId !== seller!.id) redirect("/sell");
   await updateListingStatus(id, status);
   redirect("/sell");
+}
+
+// ---------- ข้อมูลร้านค้า ----------
+export async function saveShopProfileAction(formData: FormData) {
+  const seller = await getCurrentSeller();
+  if (!seller) redirect("/login");
+  const shopName = String(formData.get("shopName") || "").trim().slice(0, 60);
+  const shopAbout = String(formData.get("shopAbout") || "").trim().slice(0, 300);
+  const next = safeNext(String(formData.get("next") || "/sell"), "/sell");
+  if (shopName.length < 2) redirect("/sell/profile?error=name");
+  const ok = await updateShopProfile(seller!.id, shopName, shopAbout);
+  redirect(ok ? next : "/sell/profile?error=db");
 }
 
 // ---------- ยืนยันเบอร์ (OTP) ----------

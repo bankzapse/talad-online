@@ -12,6 +12,8 @@ export function rowToSeller(r: Record<string, unknown>): Seller {
     trialUsed: Boolean(r.trial_used),
     blocked: Boolean(r.blocked),
     companyVerified: Boolean(r.company_verified),
+    shopName: (r.shop_name as string) ?? null,
+    shopAbout: (r.shop_about as string) ?? null,
     lineUserId: (r.line_user_id as string) ?? undefined,
   };
 }

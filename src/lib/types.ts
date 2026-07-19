@@ -33,7 +33,12 @@ export const DELIVERY_METHODS: {
 }[] = [
   { value: "meetup", label: "นัดรับเอง — จ่ายเงินสดตอนรับของ", short: "นัดรับ" },
   { value: "cod", label: "ส่งพัสดุเก็บเงินปลายทาง (COD)", short: "COD" },
-  { value: "shipping", label: "ส่งพัสดุ — โอนก่อนส่ง", short: "ส่งพัสดุ" },
+  {
+    value: "shipping",
+    label: "ส่งพัสดุ — โอนก่อนส่ง (เฉพาะร้านที่ยืนยันกับบริษัท)",
+    short: "ส่งพัสดุ",
+    requiresCompanyVerified: true,
+  },
   {
     value: "prepay",
     label: "โอนเงินก่อนรับสินค้า (เฉพาะร้านที่ยืนยันกับบริษัท)",
@@ -65,7 +70,9 @@ export interface Seller {
   membershipExpiresAt: string | null; // ISO — null = ยังไม่เคยมีสมาชิก/หมดสิทธิ์
   trialUsed: boolean;
   blocked: boolean;
-  companyVerified: boolean; // ยืนยันตัวตนกับบริษัทแล้ว → ใช้ "โอนก่อนรับของ" ได้
+  companyVerified: boolean; // ยืนยันตัวตนกับบริษัทแล้ว → ใช้วิธีรับของแบบโอนก่อนได้
+  shopName: string | null; // ต้องกรอกก่อนลงประกาศ
+  shopAbout: string | null;
   lineUserId?: string;
 }
 

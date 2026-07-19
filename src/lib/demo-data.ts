@@ -32,6 +32,8 @@ export const SELLERS: Seller[] = [
     trialUsed: true,
     blocked: false,
     companyVerified: false,
+    shopName: null,
+    shopAbout: null,
   },
   {
     id: "seller-nid",
@@ -43,6 +45,8 @@ export const SELLERS: Seller[] = [
     trialUsed: true,
     blocked: false,
     companyVerified: false,
+    shopName: null,
+    shopAbout: null,
   },
   {
     id: "seller-golf",
@@ -54,6 +58,8 @@ export const SELLERS: Seller[] = [
     trialUsed: false,
     blocked: false,
     companyVerified: false,
+    shopName: null,
+    shopAbout: null,
   },
 ];
 

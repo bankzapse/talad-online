@@ -79,7 +79,7 @@ export default async function ListingDetail({
           </p>
 
           <div className="mt-5 card p-3">
-            <div className="mb-2 text-sm font-medium text-slate-700">ผู้ขาย: {seller.displayName}</div>
+            <div className="mb-2 text-sm font-medium text-slate-700">ผู้ขาย: {seller.shopName ?? seller.displayName}</div>
             <TrustBadge seller={seller} activeCount={activeCount} />
           </div>
 

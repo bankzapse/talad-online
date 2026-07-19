@@ -39,6 +39,14 @@ export default async function SellHome({
           ✓ ยืนยันเบอร์สำเร็จ! ร้านคุณได้ป้าย &ldquo;ยืนยันเบอร์แล้ว&rdquo;
         </div>
       )}
+      {!seller.shopName && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          <span>🏪 ตั้งชื่อร้านให้เรียบร้อยก่อน จึงจะลงประกาศได้</span>
+          <Link href="/sell/profile" className="btn-primary px-3 py-1.5 text-xs">
+            ตั้งชื่อร้าน
+          </Link>
+        </div>
+      )}
       {!seller.phoneVerified && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
           <span>📱 ยืนยันเบอร์โทรเพื่อรับป้ายน่าเชื่อถือ + กันสวมรอย</span>
@@ -49,7 +57,7 @@ export default async function SellHome({
       )}
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">ร้านของ {seller.displayName}</h1>
+          <h1 className="text-xl font-bold">{seller.shopName ?? `ร้านของ ${seller.displayName}`}</h1>
           <div className="mt-1 text-sm">
             {active ? (
               <span className={dleft! <= 3 ? "text-red-500" : "text-brand-dark"}>
@@ -84,6 +92,9 @@ export default async function SellHome({
         </Link>
         <Link href="/sell/membership" className="btn-outline">
           สมาชิก / ต่ออายุ
+        </Link>
+        <Link href="/sell/profile" className="btn-outline">
+          ข้อมูลร้าน
         </Link>
       </div>
 
