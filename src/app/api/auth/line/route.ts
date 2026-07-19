@@ -14,7 +14,9 @@ export async function GET(req: Request) {
     return NextResponse.redirect(new URL(buyer ? "/login?buyer=1" : "/login", url.origin));
   }
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+  // ใช้โดเมนที่ผู้ใช้เปิดอยู่จริงเป็นหลัก → callback ตรงกับโดเมนเสมอ
+  // (NEXT_PUBLIC_APP_URL ใช้เป็น fallback เท่านั้น)
+  const origin = url.origin || process.env.NEXT_PUBLIC_APP_URL!;
   const redirectUri = `${origin}/api/auth/line/callback`;
   const state = crypto.randomUUID();
 

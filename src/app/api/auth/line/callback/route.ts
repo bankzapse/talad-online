@@ -9,7 +9,8 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
-  const origin = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+  // ต้องใช้ origin เดียวกับตอนขอ authorize (โดเมนที่ผู้ใช้เปิดจริง)
+  const origin = url.origin || process.env.NEXT_PUBLIC_APP_URL!;
 
   const jar = await cookies();
   const raw = jar.get("line_oauth")?.value;
