@@ -43,6 +43,22 @@ export function subdistrictName(id: number): string | null {
   return S.find((x) => x.i === id)?.n ?? null;
 }
 
+// ชื่อ → id (ประกาศเก็บเป็นชื่อไทย) — ใช้เติมค่าเดิมในฟอร์มแก้ไขประกาศ
+// จับคู่ตามลำดับชั้นเพื่อกันชื่ออำเภอ/ตำบลซ้ำข้ามจังหวัด (เช่น "เมือง" มีเกือบทุกจังหวัด)
+export function findGeoIds(
+  province: string,
+  district: string,
+  subdistrict: string
+): { provinceId: number; districtId: number; subdistrictId: number } | null {
+  const p = P.find((x) => x.n === province);
+  if (!p) return null;
+  const d = D.find((x) => x.p === p.i && x.n === district);
+  if (!d) return null;
+  const s = S.find((x) => x.d === d.i && x.n === subdistrict);
+  if (!s) return null;
+  return { provinceId: p.i, districtId: d.i, subdistrictId: s.i };
+}
+
 // ตรวจว่า id สอดคล้องกันจริง (กันยิงค่ามั่ว)
 export function isValidGeo(provinceId: number, districtId: number, subdistrictId: number) {
   const d = D.find((x) => x.i === districtId);

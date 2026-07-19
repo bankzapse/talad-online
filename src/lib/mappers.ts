@@ -1,4 +1,28 @@
-import type { Listing, Seller, Payment, MembershipPackage } from "./types";
+import type { Listing, Seller, Payment, MembershipPackage, Order } from "./types";
+
+export function rowToOrder(r: Record<string, unknown>): Order {
+  return {
+    id: String(r.id),
+    listingId: (r.listing_id as string) ?? null,
+    sellerId: String(r.seller_id),
+    buyerKey: String(r.buyer_key ?? ""),
+    buyerName: String(r.buyer_name ?? ""),
+    buyerPhone: String(r.buyer_phone ?? ""),
+    address: (r.address as string) ?? null,
+    listingTitle: String(r.listing_title ?? ""),
+    price: Number(r.price ?? 0),
+    unit: (r.unit as string) ?? null,
+    qty: Number(r.qty ?? 1),
+    note: (r.note as string) ?? null,
+    deliveryMethod: ((r.delivery_method as string) ?? "meetup") as Order["deliveryMethod"],
+    status: ((r.status as string) ?? "pending") as Order["status"],
+    trackingNo: (r.tracking_no as string) ?? null,
+    carrier: (r.carrier as string) ?? null,
+    cancelReason: (r.cancel_reason as string) ?? null,
+    createdAt: String(r.created_at),
+    confirmedAt: (r.confirmed_at as string) ?? null,
+  };
+}
 
 // แปลงแถว Supabase (snake_case) → โดเมน (camelCase)
 export function rowToSeller(r: Record<string, unknown>): Seller {

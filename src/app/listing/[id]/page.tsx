@@ -114,7 +114,13 @@ export default async function ListingDetail({
             );
           })()}
 
-          <div className="mt-3">
+          <div className="mt-3 space-y-2">
+            <Link
+              href={`/listing/${listing.id}/order`}
+              className="btn-primary w-full py-3 text-base"
+            >
+              🛒 สั่งซื้อสินค้านี้
+            </Link>
             <ContactButton
               listingId={listing.id}
               buyerLoggedIn={buyerLoggedIn}

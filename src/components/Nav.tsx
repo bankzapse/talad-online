@@ -48,9 +48,9 @@ export default async function Nav() {
             </>
           ) : buyerIn ? (
             <>
-              <span className="chip border-brand/25 bg-brand-soft text-brand-dark">
-                👤 ผู้ซื้อ
-              </span>
+              <Link href="/orders" className="rounded-full px-3 py-2 text-slate-600 hover:bg-white/70">
+                📦 คำสั่งซื้อ
+              </Link>
               <Link href="/login" className="btn-outline">ลงขายกับเรา</Link>
               <form action={logoutBuyer}>
                 <button className="rounded-full px-3 py-2 text-slate-500 hover:bg-white/70 hover:text-slate-700">

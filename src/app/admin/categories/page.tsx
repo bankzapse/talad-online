@@ -4,6 +4,7 @@ import {
   createCategoryAction,
   updateCategoryAction,
   deleteCategoryAction,
+  moveCategoryAction,
 } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -51,12 +52,37 @@ export default async function AdminCategories({
 
       {/* รายการหมวด */}
       <div className="space-y-2">
-        {categories.map((c) => {
+        {categories.map((c, i) => {
           const used = counts.get(c.id) ?? 0;
           const save = updateCategoryAction.bind(null, c.id);
           const del = deleteCategoryAction.bind(null, c.id);
+          const up = moveCategoryAction.bind(null, c.id, -1);
+          const down = moveCategoryAction.bind(null, c.id, 1);
           return (
             <div key={c.id} className="card flex flex-wrap items-center gap-3 p-3">
+              {/* จัดเรียงลำดับ — ลำดับนี้คือลำดับที่ผู้ซื้อเห็นในเมนูหมวดสินค้า */}
+              <div className="flex flex-col">
+                <form action={up}>
+                  <button
+                    disabled={i === 0}
+                    aria-label={`เลื่อน ${c.name} ขึ้น`}
+                    className="px-1.5 text-slate-400 hover:text-brand-dark disabled:opacity-25"
+                  >
+                    ▲
+                  </button>
+                </form>
+                <form action={down}>
+                  <button
+                    disabled={i === categories.length - 1}
+                    aria-label={`เลื่อน ${c.name} ลง`}
+                    className="px-1.5 text-slate-400 hover:text-brand-dark disabled:opacity-25"
+                  >
+                    ▼
+                  </button>
+                </form>
+              </div>
+              <span className="w-5 shrink-0 text-center text-xs text-slate-300">{i + 1}</span>
+
               <form action={save} className="flex flex-1 flex-wrap items-center gap-2">
                 <input
                   name="emoji"
@@ -89,7 +115,8 @@ export default async function AdminCategories({
       </div>
 
       <p className="mt-4 text-xs text-slate-400">
-        * หมวดที่มีประกาศใช้อยู่จะลบไม่ได้ (กันข้อมูลเสีย) — แก้ชื่อ/ไอคอนได้ตลอด
+        * กด ▲ ▼ เพื่อจัดลำดับ — ลำดับนี้คือลำดับที่ผู้ซื้อเห็นในเมนูหมวดสินค้าและหน้าลงประกาศ
+        <br />* หมวดที่มีประกาศใช้อยู่จะลบไม่ได้ (กันข้อมูลเสีย) — แก้ชื่อ/ไอคอนได้ตลอด
       </p>
     </div>
   );

@@ -6,10 +6,12 @@ import type {
   MembershipPackage,
   Payment,
   Seller,
+  Order,
+  DeliveryMethod,
 } from "./types";
 import { checkBlocklist } from "./blocklist";
 import { getServiceClient, isSupabaseReady } from "./supabase/admin";
-import { rowToSeller, rowToListing, rowToPayment, rowToPackage } from "./mappers";
+import { rowToSeller, rowToListing, rowToPayment, rowToPackage, rowToOrder } from "./mappers";
 import { COMPANY } from "./company";
 
 // ---------- ตั้งค่าบัญชีรับเงิน (admin แก้ได้) ----------
@@ -71,10 +73,17 @@ const sb = () => getServiceClient()!;
 // ---------- reference ----------
 export async function getCategories(): Promise<Category[]> {
   if (isSupabaseReady()) {
-    const { data } = await sb().from("categories").select("*").order("id");
-    return (data ?? []).map((r) => ({ id: r.id, name: r.name, emoji: r.emoji }));
+    // เรียงตาม sort_order (admin จัดลำดับเองได้) — ถ้ายังไม่ได้ migrate ให้ fallback เรียงตาม id
+    let res = await sb().from("categories").select("*").order("sort_order").order("id");
+    if (res.error) res = await sb().from("categories").select("*").order("id");
+    return (res.data ?? []).map((r, i) => ({
+      id: r.id,
+      name: r.name,
+      emoji: r.emoji,
+      sortOrder: Number(r.sort_order ?? (i + 1) * 10),
+    }));
   }
-  return db.categories;
+  return [...db.categories].sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export async function getAreas(): Promise<Area[]> {
@@ -103,11 +112,41 @@ export async function categoryListingCount(id: string): Promise<number> {
 
 export async function createCategory(name: string, emoji: string): Promise<void> {
   const id = `cat-${Math.random().toString(36).slice(2, 8)}`;
+  const existing = await getCategories();
+  const sortOrder = (existing.at(-1)?.sortOrder ?? 0) + 10; // ต่อท้ายรายการ
   if (isSupabaseReady()) {
-    await sb().from("categories").insert({ id, name, emoji: emoji || "🛍️" });
+    const row = { id, name, emoji: emoji || "🛍️" };
+    const res = await sb().from("categories").insert({ ...row, sort_order: sortOrder });
+    if (res.error) await sb().from("categories").insert(row); // ยังไม่ migrate
     return;
   }
-  db.categories.push({ id, name, emoji: emoji || "🛍️" });
+  db.categories.push({ id, name, emoji: emoji || "🛍️", sortOrder });
+}
+
+// เลื่อนหมวดขึ้น/ลงหนึ่งขั้น (dir = -1 ขึ้น, +1 ลง)
+// เขียน sort_order ใหม่ทั้งชุดแบบ 10,20,30… — กันกรณีหมวดเก่ามีค่าซ้ำกัน (default เดิม 100)
+// ซึ่งถ้าใช้วิธีสลับค่ากันตรง ๆ จะกดแล้วไม่ขยับ
+export async function moveCategory(id: string, dir: -1 | 1): Promise<void> {
+  const cats = await getCategories();
+  const i = cats.findIndex((c) => c.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= cats.length) return;
+
+  const next = [...cats];
+  [next[i], next[j]] = [next[j], next[i]];
+
+  if (isSupabaseReady()) {
+    await Promise.all(
+      next.map((c, idx) =>
+        sb().from("categories").update({ sort_order: (idx + 1) * 10 }).eq("id", c.id)
+      )
+    );
+    return;
+  }
+  next.forEach((c, idx) => {
+    const d = db.categories.find((x) => x.id === c.id);
+    if (d) d.sortOrder = (idx + 1) * 10;
+  });
 }
 
 export async function updateCategory(id: string, name: string, emoji: string): Promise<void> {
@@ -421,6 +460,73 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
   db.listings.unshift(listing);
   db.counters.listingsCreated += 1;
   return listing;
+}
+
+// ---------- แก้ไข / ลบประกาศ (เจ้าของเท่านั้น — ตรวจสิทธิ์ที่ actions.ts) ----------
+export interface EditListingInput {
+  title: string;
+  description: string;
+  price: number;
+  unit: Listing["unit"];
+  categoryId: string;
+  province: string;
+  district: string;
+  subdistrict: string;
+  marketName: string;
+  images: string[];
+  deliveryMethod: Listing["deliveryMethod"];
+}
+
+export async function updateListing(id: string, input: EditListingInput): Promise<void> {
+  // แก้ข้อความแล้วต้องตรวจ blocklist ใหม่ — กันแก้ประกาศให้กลายเป็นของต้องห้ามทีหลัง
+  const flag = checkBlocklist(input.title, input.description);
+
+  if (isSupabaseReady()) {
+    const patch: Record<string, unknown> = {
+      title: input.title,
+      description: input.description,
+      price: input.price,
+      unit: input.unit,
+      category_id: input.categoryId,
+      province: input.province,
+      district: input.district,
+      subdistrict: input.subdistrict,
+      market_name: input.marketName,
+      images: input.images,
+      delivery_method: input.deliveryMethod,
+      flagged_keywords: flag.matched,
+    };
+    if (flag.hit) patch.status = "pending_review";
+    await sb().from("listings").update(patch).eq("id", id);
+    return;
+  }
+
+  const l = db.listings.find((x) => x.id === id);
+  if (!l) return;
+  Object.assign(l, {
+    title: input.title,
+    description: input.description,
+    price: input.price,
+    unit: input.unit,
+    categoryId: input.categoryId,
+    province: input.province,
+    district: input.district,
+    subdistrict: input.subdistrict,
+    marketName: input.marketName,
+    images: input.images,
+    deliveryMethod: input.deliveryMethod,
+    flaggedKeywords: flag.matched,
+    ...(flag.hit ? { status: "pending_review" as const } : {}),
+  });
+}
+
+export async function deleteListing(id: string): Promise<void> {
+  if (isSupabaseReady()) {
+    await sb().from("listings").delete().eq("id", id);
+    return;
+  }
+  const i = db.listings.findIndex((x) => x.id === id);
+  if (i >= 0) db.listings.splice(i, 1);
 }
 
 export async function updateListingStatus(id: string, status: Listing["status"]): Promise<void> {
@@ -910,4 +1016,152 @@ export async function getAnalytics() {
         ? Math.round((db.counters.paymentSuccess / db.counters.trialStarted) * 100)
         : 0,
   };
+}
+
+// -----------------------------------------------------------------------------
+// รายการสั่งซื้อ (orders)
+// ที่อยู่/เบอร์ผู้ซื้อเป็นข้อมูลส่วนบุคคล → อ่านผ่าน service_role เท่านั้น
+// และทุกจุดที่เรียกต้องตรวจสิทธิ์เจ้าของก่อน (ดู actions.ts)
+// -----------------------------------------------------------------------------
+export interface NewOrderInput {
+  listingId: string;
+  sellerId: string;
+  buyerKey: string;
+  buyerName: string;
+  buyerPhone: string;
+  address: string | null;
+  listingTitle: string;
+  price: number;
+  unit: string;
+  qty: number;
+  note: string;
+  deliveryMethod: DeliveryMethod;
+}
+
+export async function createOrder(input: NewOrderInput): Promise<Order | null> {
+  if (isSupabaseReady()) {
+    const { data, error } = await sb()
+      .from("orders")
+      .insert({
+        listing_id: input.listingId,
+        seller_id: input.sellerId,
+        buyer_key: input.buyerKey,
+        buyer_name: input.buyerName,
+        buyer_phone: input.buyerPhone,
+        address: input.address,
+        listing_title: input.listingTitle,
+        price: input.price,
+        unit: input.unit,
+        qty: input.qty,
+        note: input.note || null,
+        delivery_method: input.deliveryMethod,
+        status: "pending",
+      })
+      .select("*")
+      .single();
+    if (error || !data) return null;
+    return rowToOrder(data);
+  }
+
+  const order: Order = {
+    id: `o-${Math.random().toString(36).slice(2, 8)}`,
+    listingId: input.listingId,
+    sellerId: input.sellerId,
+    buyerKey: input.buyerKey,
+    buyerName: input.buyerName,
+    buyerPhone: input.buyerPhone,
+    address: input.address,
+    listingTitle: input.listingTitle,
+    price: input.price,
+    unit: input.unit,
+    qty: input.qty,
+    note: input.note || null,
+    deliveryMethod: input.deliveryMethod,
+    status: "pending",
+    trackingNo: null,
+    carrier: null,
+    cancelReason: null,
+    createdAt: new Date().toISOString(),
+    confirmedAt: null,
+  };
+  db.orders.unshift(order);
+  return order;
+}
+
+export async function getSellerOrders(sellerId: string): Promise<Order[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb()
+      .from("orders")
+      .select("*")
+      .eq("seller_id", sellerId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map(rowToOrder);
+  }
+  return db.orders.filter((o) => o.sellerId === sellerId);
+}
+
+export async function getBuyerOrders(buyerKey: string): Promise<Order[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb()
+      .from("orders")
+      .select("*")
+      .eq("buyer_key", buyerKey)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map(rowToOrder);
+  }
+  return db.orders.filter((o) => o.buyerKey === buyerKey);
+}
+
+export async function getOrder(id: string): Promise<Order | undefined> {
+  if (isSupabaseReady()) {
+    const { data } = await sb().from("orders").select("*").eq("id", id).maybeSingle();
+    return data ? rowToOrder(data) : undefined;
+  }
+  return db.orders.find((o) => o.id === id);
+}
+
+// ที่อยู่/เบอร์ล่าสุดของผู้ซื้อ — ใช้เติมฟอร์มให้อัตโนมัติ (ไม่ต้องพิมพ์ซ้ำทุกครั้ง)
+export async function getLastBuyerInfo(
+  buyerKey: string
+): Promise<{ name: string; phone: string; address: string } | null> {
+  const orders = await getBuyerOrders(buyerKey);
+  const last = orders[0];
+  if (!last) return null;
+  return { name: last.buyerName, phone: last.buyerPhone, address: last.address ?? "" };
+}
+
+export async function updateOrder(
+  id: string,
+  patch: Partial<{
+    status: Order["status"];
+    trackingNo: string | null;
+    carrier: string | null;
+    cancelReason: string | null;
+    confirmedAt: string | null;
+  }>
+): Promise<void> {
+  if (isSupabaseReady()) {
+    const row: Record<string, unknown> = {};
+    if (patch.status !== undefined) row.status = patch.status;
+    if (patch.trackingNo !== undefined) row.tracking_no = patch.trackingNo;
+    if (patch.carrier !== undefined) row.carrier = patch.carrier;
+    if (patch.cancelReason !== undefined) row.cancel_reason = patch.cancelReason;
+    if (patch.confirmedAt !== undefined) row.confirmed_at = patch.confirmedAt;
+    await sb().from("orders").update(row).eq("id", id);
+    return;
+  }
+  const o = db.orders.find((x) => x.id === id);
+  if (o) Object.assign(o, patch);
+}
+
+export async function countPendingOrders(sellerId: string): Promise<number> {
+  if (isSupabaseReady()) {
+    const { count } = await sb()
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("seller_id", sellerId)
+      .eq("status", "pending");
+    return count ?? 0;
+  }
+  return db.orders.filter((o) => o.sellerId === sellerId && o.status === "pending").length;
 }

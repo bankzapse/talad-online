@@ -5,6 +5,7 @@ import type {
   Payment,
   Report,
   AdminLog,
+  Order,
 } from "./types";
 import { CATEGORIES, AREAS, SELLERS, LISTINGS } from "./demo-data";
 import { DEFAULT_PACKAGES } from "./packages";
@@ -25,6 +26,7 @@ interface DB {
   payments: Payment[];
   reports: Report[];
   adminLogs: AdminLog[];
+  orders: Order[];
   // analytics + rate-limit
   contactEvents: { listingId: string; key: string; at: number }[];
   counters: { listingsCreated: number; contactClicked: number; trialStarted: number; paymentSuccess: number };
@@ -46,6 +48,7 @@ function seed(): DB {
     payments: [],
     reports: [],
     adminLogs: [],
+    orders: [],
     contactEvents: [],
     counters: {
       listingsCreated: LISTINGS.length,

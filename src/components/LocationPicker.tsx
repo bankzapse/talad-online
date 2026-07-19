@@ -4,37 +4,64 @@ import { useEffect, useState } from "react";
 
 type Item = { id: number; name: string };
 
+export interface LocationInitial {
+  provinceId: number;
+  districtId: number;
+  subdistrictId: number;
+  marketName: string;
+}
+
 // จังหวัด → อำเภอ → ตำบล (dropdown ต่อเนื่อง) + ชื่อตลาด/พื้นที่ พิมพ์เอง
-export default function LocationPicker({ provinces }: { provinces: Item[] }) {
-  const [provinceId, setProvinceId] = useState("");
-  const [districtId, setDistrictId] = useState("");
-  const [subdistrictId, setSubdistrictId] = useState("");
+// initial = ค่าเดิมตอนแก้ไขประกาศ (โหลดอำเภอ/ตำบลของเดิมมาให้เลย ไม่ต้องเลือกใหม่)
+export default function LocationPicker({
+  provinces,
+  initial,
+}: {
+  provinces: Item[];
+  initial?: LocationInitial;
+}) {
+  const [provinceId, setProvinceId] = useState(initial ? String(initial.provinceId) : "");
+  const [districtId, setDistrictId] = useState(initial ? String(initial.districtId) : "");
+  const [subdistrictId, setSubdistrictId] = useState(
+    initial ? String(initial.subdistrictId) : ""
+  );
   const [districts, setDistricts] = useState<Item[]>([]);
   const [subdistricts, setSubdistricts] = useState<Item[]>([]);
   const [loading, setLoading] = useState<"d" | "s" | null>(null);
+  // ครั้งแรกที่โหลดค่าเดิม ต้องไม่ล้าง districtId/subdistrictId ทิ้ง
+  const [hydrating, setHydrating] = useState(Boolean(initial));
 
   useEffect(() => {
-    setDistrictId("");
-    setSubdistrictId("");
+    if (!hydrating) {
+      setDistrictId("");
+      setSubdistrictId("");
+      setSubdistricts([]);
+    }
     setDistricts([]);
-    setSubdistricts([]);
     if (!provinceId) return;
     setLoading("d");
     fetch(`/api/geo?province=${provinceId}`)
       .then((r) => r.json())
       .then((d) => setDistricts(d.items ?? []))
       .finally(() => setLoading(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provinceId]);
 
   useEffect(() => {
-    setSubdistrictId("");
-    setSubdistricts([]);
+    if (!hydrating) {
+      setSubdistrictId("");
+      setSubdistricts([]);
+    }
     if (!districtId) return;
     setLoading("s");
     fetch(`/api/geo?district=${districtId}`)
       .then((r) => r.json())
       .then((d) => setSubdistricts(d.items ?? []))
-      .finally(() => setLoading(null));
+      .finally(() => {
+        setLoading(null);
+        setHydrating(false); // ค่าเดิมโหลดครบแล้ว — ต่อจากนี้เปลี่ยนจังหวัดให้ล้างค่าตามปกติ
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [districtId]);
 
   return (
@@ -107,6 +134,7 @@ export default function LocationPicker({ provinces }: { provinces: Item[] }) {
           name="marketName"
           required
           maxLength={80}
+          defaultValue={initial?.marketName ?? ""}
           className="input"
           placeholder="เช่น ตลาดสดเทศบาล, หน้าโลตัสสาขา..., ตลาดนัดวันอาทิตย์"
         />

@@ -6,8 +6,8 @@ import { useState } from "react";
 // เลือกได้หลายรูปพร้อมกัน (สูงสุด 10 รูป) · ลบรายรูป · สลับตำแหน่งได้ (ลาก หรือกดลูกศร)
 const MAX_IMAGES = 10;
 
-export default function ImageUpload() {
-  const [urls, setUrls] = useState<string[]>([]);
+export default function ImageUpload({ initial }: { initial?: string[] }) {
+  const [urls, setUrls] = useState<string[]>(initial ?? []);
   const [busy, setBusy] = useState(0);
   const [msg, setMsg] = useState<string | null>(null);
   const [dragFrom, setDragFrom] = useState<number | null>(null);

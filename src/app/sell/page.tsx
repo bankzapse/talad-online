@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentSeller } from "@/lib/auth";
-import { getSellerListings, getCategories } from "@/lib/data";
+import { getSellerListings, getCategories, countPendingOrders } from "@/lib/data";
 import { formatPrice, daysLeft } from "@/lib/format";
 import { setListingStatusAction, logout } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
@@ -18,15 +18,16 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function SellHome({
   searchParams,
 }: {
-  searchParams: Promise<{ verified?: string }>;
+  searchParams: Promise<{ verified?: string; saved?: string; deleted?: string }>;
 }) {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
   const sp = await searchParams;
 
-  const [listings, categories] = await Promise.all([
+  const [listings, categories, pendingOrders] = await Promise.all([
     getSellerListings(seller.id),
     getCategories(),
+    countPendingOrders(seller.id),
   ]);
   const catMap = new Map(categories.map((c) => [c.id, c]));
   const dleft = daysLeft(seller.membershipExpiresAt);
@@ -37,6 +38,16 @@ export default async function SellHome({
       {sp.verified === "1" && (
         <div className="mb-4 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
           ✓ ยืนยันเบอร์สำเร็จ! ร้านคุณได้ป้าย &ldquo;ยืนยันเบอร์แล้ว&rdquo;
+        </div>
+      )}
+      {sp.saved === "1" && (
+        <div className="mb-4 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
+          ✓ บันทึกการแก้ไขประกาศแล้ว
+        </div>
+      )}
+      {sp.deleted === "1" && (
+        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
+          ลบประกาศแล้ว
         </div>
       )}
       {!seller.shopName && (
@@ -89,6 +100,14 @@ export default async function SellHome({
       <div className="mb-5 flex gap-2">
         <Link href="/sell/new" className="btn-primary">
           + ลงประกาศใหม่
+        </Link>
+        <Link href="/sell/orders" className="btn-outline">
+          รายการสั่งซื้อ
+          {pendingOrders > 0 && (
+            <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-xs text-amber-700">
+              {pendingOrders}
+            </span>
+          )}
         </Link>
         <Link href="/sell/membership" className="btn-outline">
           สมาชิก / ต่ออายุ
@@ -145,7 +164,13 @@ export default async function SellHome({
                   {formatPrice(l.price, l.unit)} · 📍 {l.marketName || l.province}
                 </div>
               </div>
-              <div className="flex shrink-0 gap-1">
+              <div className="flex shrink-0 items-center gap-1">
+                <Link
+                  href={`/sell/edit/${l.id}`}
+                  className="btn-outline px-2 py-1 text-xs"
+                >
+                  แก้ไข
+                </Link>
                 {l.status === "active" && (
                   <form action={setListingStatusAction.bind(null, l.id, "sold")}>
                     <SubmitButton className="btn-outline px-2 py-1 text-xs">ขายแล้ว</SubmitButton>

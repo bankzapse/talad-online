@@ -13,11 +13,22 @@ export async function pushToSeller(
   seller: Seller | undefined,
   message: string
 ): Promise<PushResult> {
+  return pushToLineUser(seller?.lineUserId, message, seller?.displayName);
+}
+
+// push หา LINE userId ตรง ๆ — ใช้แจ้งผู้ซื้อเรื่องออร์เดอร์
+// buyerKey จะเป็น LINE userId จริงเมื่อล็อกอินผ่าน LINE (ขึ้นต้น "U")
+// ถ้าเป็น demo buyer (buyer-xxxx) จะ push ไม่ได้ → คืน "logged"
+export async function pushToLineUser(
+  lineUserId: string | undefined,
+  message: string,
+  label = "?"
+): Promise<PushResult> {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
-  if (!token || !seller?.lineUserId) {
-    // demo mode — ยังไม่ได้ตั้งค่า LINE หรือผู้ขายยังไม่ผูก LINE
-    console.log(`[LINE push:demo] → ${seller?.displayName ?? "?"}: ${message}`);
+  if (!token || !lineUserId || !lineUserId.startsWith("U")) {
+    // demo mode — ยังไม่ได้ตั้งค่า LINE หรือปลายทางยังไม่ผูก LINE
+    console.log(`[LINE push:demo] → ${label}: ${message}`);
     return "logged";
   }
 
@@ -29,7 +40,7 @@ export async function pushToSeller(
         authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        to: seller.lineUserId,
+        to: lineUserId,
         messages: [{ type: "text", text: message }],
       }),
     });

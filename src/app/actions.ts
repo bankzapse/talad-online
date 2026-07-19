@@ -2,7 +2,13 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE, BUYER_COOKIE, ADMIN_COOKIE, getCurrentSeller } from "@/lib/auth";
+import {
+  SESSION_COOKIE,
+  BUYER_COOKIE,
+  ADMIN_COOKIE,
+  getCurrentSeller,
+  getBuyerKey,
+} from "@/lib/auth";
 import {
   createListing,
   updateListingStatus,
@@ -25,9 +31,18 @@ import {
   setSellerCompanyVerified,
   updateShopProfile,
   reviewShopVerification,
+  moveCategory,
+  updateListing,
+  deleteListing,
+  createOrder,
+  getOrder,
+  updateOrder,
+  getSeller,
 } from "@/lib/data";
 import { isValidThaiMobile, normalizePhone, verifyOtp } from "@/lib/otp";
-import type { Unit } from "@/lib/types";
+import type { Unit, DeliveryMethod } from "@/lib/types";
+import { needsShipping } from "@/lib/types";
+import { pushToLineUser } from "@/lib/line";
 import { safeNext } from "@/lib/url";
 import { isLineLoginConfigured } from "@/lib/line-login";
 import { verifySlipAmount } from "@/lib/slip";
@@ -91,6 +106,17 @@ export async function logoutAll(next?: unknown) {
 // ---------- listings ----------
 // หมายเหตุความปลอดภัย: ทุก action ตรวจ seller จาก session จริง (ไม่เชื่อ id ที่ส่งมา)
 // และตรวจสิทธิ์เจ้าของก่อนแก้ข้อมูล (กัน IDOR)
+
+const DELIVERY_VALUES: DeliveryMethod[] = ["meetup", "cod", "shipping", "prepay"];
+
+function parseDelivery(raw: string): DeliveryMethod {
+  return (DELIVERY_VALUES as string[]).includes(raw) ? (raw as DeliveryMethod) : "meetup";
+}
+
+// วิธีที่ผู้ซื้อต้องโอนเงินก่อนได้ของ → จำกัดเฉพาะร้านที่ยืนยันตัวตนกับบริษัทแล้ว
+function requiresVerified(m: DeliveryMethod): boolean {
+  return m === "prepay" || m === "shipping";
+}
 export async function createListingAction(_sellerId: string, formData: FormData) {
   const seller = await getCurrentSeller();
   if (!seller || seller.blocked) redirect("/login");
@@ -113,12 +139,9 @@ export async function createListingAction(_sellerId: string, formData: FormData)
   const districtId = Number(formData.get("districtId") || 0);
   const subdistrictId = Number(formData.get("subdistrictId") || 0);
   const marketName = String(formData.get("marketName") || "").trim().slice(0, 80);
-  const dmRaw = String(formData.get("deliveryMethod") || "meetup");
-  let deliveryMethod = (["meetup", "cod", "shipping", "prepay"].includes(dmRaw)
-    ? dmRaw
-    : "meetup") as "meetup" | "cod" | "shipping" | "prepay";
-  // "โอนก่อนรับสินค้า" ใช้ได้เฉพาะร้านที่ยืนยันกับบริษัทแล้ว
-  if (deliveryMethod === "prepay" && !seller!.companyVerified) {
+  const deliveryMethod = parseDelivery(String(formData.get("deliveryMethod") || "meetup"));
+  // วิธีที่ผู้ซื้อต้องโอนก่อน ใช้ได้เฉพาะร้านที่ยืนยันกับบริษัทแล้ว
+  if (requiresVerified(deliveryMethod) && !seller!.companyVerified) {
     redirect("/sell/new?error=prepay");
   }
 
@@ -334,4 +357,186 @@ export async function savePackageAction(formData: FormData) {
     active: formData.get("active") === "on",
   });
   redirect("/admin/packages");
+}
+
+// ---------- แก้ไข / ลบประกาศ ----------
+export async function updateListingAction(id: string, formData: FormData) {
+  const seller = await getCurrentSeller();
+  if (!seller || seller.blocked) redirect("/login");
+
+  const listing = await getListing(id);
+  // ตรวจสิทธิ์เจ้าของก่อนเสมอ (กัน IDOR — แก้ประกาศคนอื่นไม่ได้)
+  if (!listing || listing.sellerId !== seller!.id) redirect("/sell");
+
+  const back = `/sell/edit/${id}`;
+  let images: string[] = [];
+  try {
+    const parsed = JSON.parse(String(formData.get("images") || "[]"));
+    if (Array.isArray(parsed)) images = parsed.filter((x) => typeof x === "string").slice(0, 10);
+  } catch {
+    images = [];
+  }
+
+  const title = String(formData.get("title") || "").trim().slice(0, 120);
+  const description = String(formData.get("description") || "").trim().slice(0, 2000);
+  const price = Number(formData.get("price") || 0);
+  const categoryId = String(formData.get("categoryId") || "");
+  const provinceId = Number(formData.get("provinceId") || 0);
+  const districtId = Number(formData.get("districtId") || 0);
+  const subdistrictId = Number(formData.get("subdistrictId") || 0);
+  const marketName = String(formData.get("marketName") || "").trim().slice(0, 80);
+  const deliveryMethod = parseDelivery(String(formData.get("deliveryMethod") || "meetup"));
+
+  if (requiresVerified(deliveryMethod) && !seller!.companyVerified) redirect(`${back}?error=prepay`);
+  if (!title || !categoryId || !marketName) redirect(`${back}?error=required`);
+  if (!isValidGeo(provinceId, districtId, subdistrictId)) redirect(`${back}?error=area`);
+  if (!Number.isFinite(price) || price < 0 || price > 100_000_000) redirect(`${back}?error=price`);
+
+  await updateListing(id, {
+    title,
+    description,
+    price,
+    unit: String(formData.get("unit") || "ชิ้น") as Unit,
+    categoryId,
+    province: provinceName(provinceId)!,
+    district: districtName(districtId)!,
+    subdistrict: subdistrictName(subdistrictId)!,
+    marketName,
+    images,
+    deliveryMethod,
+  });
+  redirect("/sell?saved=1");
+}
+
+export async function deleteListingAction(id: string) {
+  const seller = await getCurrentSeller();
+  if (!seller) redirect("/login");
+  const listing = await getListing(id);
+  if (!listing || listing.sellerId !== seller!.id) redirect("/sell");
+  await deleteListing(id);
+  redirect("/sell?deleted=1");
+}
+
+// ---------- จัดเรียงหมวดสินค้า (admin) ----------
+export async function moveCategoryAction(id: string, dir: -1 | 1) {
+  await moveCategory(id, dir);
+  redirect("/admin/categories");
+}
+
+// ---------- รายการสั่งซื้อ ----------
+// ผู้ซื้อสั่งซื้อ — ต้องล็อกอินก่อน (กันสแปม + ผูกออร์เดอร์กับตัวตน)
+export async function createOrderAction(listingId: string, formData: FormData) {
+  const buyerKey = await getBuyerKey();
+  if (!buyerKey) redirect(`/login?buyer=1&next=/listing/${listingId}/order`);
+
+  const listing = await getListing(listingId);
+  if (!listing || listing.status !== "active") redirect(`/listing/${listingId}`);
+
+  const back = `/listing/${listingId}/order`;
+  const buyerName = String(formData.get("buyerName") || "").trim().slice(0, 80);
+  const buyerPhone = normalizePhone(String(formData.get("buyerPhone") || "").trim());
+  const address = String(formData.get("address") || "").trim().slice(0, 500);
+  const note = String(formData.get("note") || "").trim().slice(0, 500);
+  const qty = Number(formData.get("qty") || 1);
+
+  if (buyerName.length < 2) redirect(`${back}?error=name`);
+  if (!isValidThaiMobile(buyerPhone)) redirect(`${back}?error=phone`);
+  // นัดรับไม่ต้องมีที่อยู่ · วิธีอื่นต้องกรอกให้ส่งของได้จริง
+  const shipping = needsShipping(listing!.deliveryMethod);
+  if (shipping && address.length < 10) redirect(`${back}?error=address`);
+  if (!Number.isFinite(qty) || qty < 1 || qty > 10_000) redirect(`${back}?error=qty`);
+
+  const order = await createOrder({
+    listingId: listing!.id,
+    sellerId: listing!.sellerId,
+    buyerKey: buyerKey!,
+    buyerName,
+    buyerPhone,
+    address: shipping ? address : null,
+    listingTitle: listing!.title,
+    price: listing!.price,
+    unit: listing!.unit,
+    qty,
+    note,
+    deliveryMethod: listing!.deliveryMethod,
+  });
+  if (!order) redirect(`${back}?error=db`);
+
+  // แจ้งผู้ขายทาง LINE ว่ามีออร์เดอร์ใหม่
+  const seller = await getSeller(listing!.sellerId);
+  await pushToLineUser(
+    seller?.lineUserId,
+    `🛒 มีรายการสั่งซื้อใหม่!\n${listing!.title} × ${qty}\nผู้ซื้อ: ${buyerName} (${buyerPhone})\nดูรายละเอียด: /sell/orders`,
+    seller?.displayName
+  );
+
+  redirect("/orders?placed=1");
+}
+
+// ตรวจว่าออร์เดอร์นี้เป็นของผู้ขายที่ล็อกอินอยู่จริง (กัน IDOR)
+async function ownedOrder(orderId: string) {
+  const seller = await getCurrentSeller();
+  if (!seller) redirect("/login");
+  const order = await getOrder(orderId);
+  if (!order || order.sellerId !== seller!.id) redirect("/sell/orders");
+  return { seller: seller!, order: order! };
+}
+
+export async function confirmOrderAction(orderId: string) {
+  const { seller, order } = await ownedOrder(orderId);
+  await updateOrder(orderId, {
+    status: "confirmed",
+    confirmedAt: new Date().toISOString(),
+  });
+  await pushToLineUser(
+    order.buyerKey,
+    `✅ ร้าน ${seller.shopName ?? seller.displayName} ยืนยันรายการสั่งซื้อของคุณแล้ว\n${order.listingTitle} × ${order.qty}\nติดต่อร้าน: ${seller.contactPhone ?? "-"}`,
+    "ผู้ซื้อ"
+  );
+  redirect("/sell/orders");
+}
+
+// ใส่เลขพัสดุ → สถานะเป็น "จัดส่งแล้ว" · นัดรับไม่ต้องใส่เลขพัสดุ
+export async function shipOrderAction(orderId: string, formData: FormData) {
+  const { seller, order } = await ownedOrder(orderId);
+  const trackingNo = String(formData.get("trackingNo") || "").trim().slice(0, 60);
+  const carrier = String(formData.get("carrier") || "").trim().slice(0, 40);
+
+  if (needsShipping(order.deliveryMethod) && trackingNo.length < 4) {
+    redirect("/sell/orders?error=tracking");
+  }
+
+  await updateOrder(orderId, {
+    status: "shipped",
+    trackingNo: trackingNo || null,
+    carrier: carrier || null,
+    ...(order.status === "pending" ? { confirmedAt: new Date().toISOString() } : {}),
+  });
+
+  await pushToLineUser(
+    order.buyerKey,
+    trackingNo
+      ? `📦 ร้าน ${seller.shopName ?? seller.displayName} จัดส่งสินค้าแล้ว\n${order.listingTitle}\nขนส่ง: ${carrier || "-"}\nเลขพัสดุ: ${trackingNo}`
+      : `📦 ร้าน ${seller.shopName ?? seller.displayName} เตรียมของให้แล้ว — นัดรับได้เลย\n${order.listingTitle}`,
+    "ผู้ซื้อ"
+  );
+  redirect("/sell/orders");
+}
+
+export async function completeOrderAction(orderId: string) {
+  await ownedOrder(orderId);
+  await updateOrder(orderId, { status: "completed" });
+  redirect("/sell/orders");
+}
+
+export async function cancelOrderAction(orderId: string, formData: FormData) {
+  const { seller, order } = await ownedOrder(orderId);
+  const reason = String(formData.get("reason") || "").trim().slice(0, 200);
+  await updateOrder(orderId, { status: "cancelled", cancelReason: reason || null });
+  await pushToLineUser(
+    order.buyerKey,
+    `❌ ร้าน ${seller.shopName ?? seller.displayName} ยกเลิกรายการสั่งซื้อ\n${order.listingTitle}${reason ? `\nเหตุผล: ${reason}` : ""}`,
+    "ผู้ซื้อ"
+  );
+  redirect("/sell/orders");
 }

@@ -3,14 +3,14 @@ import type { Category, Area, Seller, Listing } from "./types";
 // ข้อมูลตัวอย่าง — ใช้เมื่อยังไม่ได้เชื่อม Supabase (ทำให้เว็บ deploy แล้วเห็นของจริงทันที)
 
 export const CATEGORIES: Category[] = [
-  { id: "cat-veg", name: "ผัก", emoji: "🥬" },
-  { id: "cat-fruit", name: "ผลไม้", emoji: "🍎" },
-  { id: "cat-meat", name: "เนื้อสัตว์", emoji: "🍖" },
-  { id: "cat-seafood", name: "อาหารทะเล", emoji: "🦐" },
-  { id: "cat-dry", name: "ของแห้ง", emoji: "🌾" },
-  { id: "cat-cooked", name: "อาหารปรุงสำเร็จ", emoji: "🍲" },
-  { id: "cat-secondhand", name: "มือสอง", emoji: "📦" },
-  { id: "cat-other", name: "อื่นๆ", emoji: "🛍️" },
+  { id: "cat-veg", name: "ผัก", emoji: "🥬", sortOrder: 10 },
+  { id: "cat-fruit", name: "ผลไม้", emoji: "🍎", sortOrder: 20 },
+  { id: "cat-meat", name: "เนื้อสัตว์", emoji: "🍖", sortOrder: 30 },
+  { id: "cat-seafood", name: "อาหารทะเล", emoji: "🦐", sortOrder: 40 },
+  { id: "cat-dry", name: "ของแห้ง", emoji: "🌾", sortOrder: 50 },
+  { id: "cat-cooked", name: "อาหารปรุงสำเร็จ", emoji: "🍲", sortOrder: 60 },
+  { id: "cat-secondhand", name: "มือสอง", emoji: "📦", sortOrder: 70 },
+  { id: "cat-other", name: "อื่นๆ", emoji: "🛍️", sortOrder: 80 },
 ];
 
 export const AREAS: Area[] = [

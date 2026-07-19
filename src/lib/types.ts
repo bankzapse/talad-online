@@ -58,10 +58,16 @@ export const DELIVERY_METHODS: {
 
 export const MAX_LISTING_IMAGES = 10;
 
+// ทุกวิธีที่ไม่ใช่ "นัดรับ" ต้องส่งของ → ต้องมีที่อยู่ผู้ซื้อ + เลขพัสดุตอนส่ง
+export function needsShipping(m: DeliveryMethod): boolean {
+  return m !== "meetup";
+}
+
 export interface Category {
   id: string;
   name: string;
   emoji: string;
+  sortOrder: number;
 }
 
 export interface Area {
@@ -134,6 +140,39 @@ export interface Payment {
   createdAt: string;
   verifiedAt: string | null;
   note?: string;
+}
+
+// ---------- รายการสั่งซื้อ ----------
+export type OrderStatus = "pending" | "confirmed" | "shipped" | "completed" | "cancelled";
+
+export const ORDER_STATUS: Record<OrderStatus, { text: string; cls: string }> = {
+  pending: { text: "รอร้านยืนยัน", cls: "border-amber-200 bg-amber-50 text-amber-600" },
+  confirmed: { text: "ร้านยืนยันแล้ว", cls: "border-brand/30 bg-brand-light text-brand-dark" },
+  shipped: { text: "จัดส่งแล้ว", cls: "border-blue-200 bg-blue-50 text-blue-600" },
+  completed: { text: "สำเร็จ", cls: "border-slate-200 bg-slate-50 text-slate-500" },
+  cancelled: { text: "ยกเลิก", cls: "border-red-200 bg-red-50 text-red-600" },
+};
+
+export interface Order {
+  id: string;
+  listingId: string | null;
+  sellerId: string;
+  buyerKey: string;
+  buyerName: string;
+  buyerPhone: string;
+  address: string | null; // นัดรับ = null
+  listingTitle: string; // snapshot กันประกาศถูกแก้/ลบ
+  price: number;
+  unit: string | null;
+  qty: number;
+  note: string | null;
+  deliveryMethod: DeliveryMethod;
+  status: OrderStatus;
+  trackingNo: string | null;
+  carrier: string | null;
+  cancelReason: string | null;
+  createdAt: string;
+  confirmedAt: string | null;
 }
 
 export interface Report {

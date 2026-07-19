@@ -67,7 +67,7 @@ export default function ContactButton({
     <button
       onClick={handleClick}
       disabled={state === "loading"}
-      className="btn-primary w-full py-3 text-base disabled:opacity-70"
+      className="btn-outline w-full py-3 text-base disabled:opacity-70"
     >
       {state === "loading" ? (
         <>
