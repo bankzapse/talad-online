@@ -24,6 +24,7 @@ import {
   setSellerPhoneVerified,
   setSellerCompanyVerified,
   updateShopProfile,
+  reviewShopVerification,
 } from "@/lib/data";
 import { isValidThaiMobile, normalizePhone, verifyOtp } from "@/lib/otp";
 import type { Unit } from "@/lib/types";
@@ -131,12 +132,39 @@ export async function setListingStatusAction(id: string, status: "active" | "sol
 export async function saveShopProfileAction(formData: FormData) {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
-  const shopName = String(formData.get("shopName") || "").trim().slice(0, 60);
-  const shopAbout = String(formData.get("shopAbout") || "").trim().slice(0, 300);
-  const next = safeNext(String(formData.get("next") || "/sell"), "/sell");
+  const g = (k: string, max = 80) => String(formData.get(k) || "").trim().slice(0, max);
+
+  const shopName = g("shopName", 60);
+  const contactPhone = normalizePhone(g("contactPhone", 20));
+  const next = safeNext(g("next", 200), "/sell");
+
   if (shopName.length < 2) redirect("/sell/profile?error=name");
-  const ok = await updateShopProfile(seller!.id, shopName, shopAbout);
-  redirect(ok ? next : "/sell/profile?error=db");
+  if (!isValidThaiMobile(contactPhone)) redirect("/sell/profile?error=phone");
+
+  const ok = await updateShopProfile(seller!.id, {
+    shopName,
+    shopAbout: g("shopAbout", 300),
+    contactPhone,
+    bankName: g("bankName", 60),
+    bankAccountNo: g("bankAccountNo", 40),
+    bankAccountName: g("bankAccountName", 80),
+    companyName: g("companyName", 120),
+    bookBankUrl: g("bookBankUrl", 300) || null,
+    submitForVerify: formData.get("submitForVerify") === "on",
+  });
+  if (!ok) redirect("/sell/profile?error=db");
+  redirect(next === "/sell" ? "/sell/profile?saved=1" : next);
+}
+
+// admin: อนุมัติ/ปฏิเสธเอกสารร้าน
+export async function reviewVerificationAction(
+  sellerId: string,
+  approve: boolean,
+  formData?: FormData
+) {
+  const note = formData ? String(formData.get("note") || "") : "";
+  await reviewShopVerification(sellerId, approve, note);
+  redirect("/admin/verify");
 }
 
 // ---------- ยืนยันเบอร์ (OTP) ----------

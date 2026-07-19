@@ -23,6 +23,15 @@ export const UNITS: Unit[] = [
 
 export type ListingStatus = "active" | "sold" | "hidden" | "pending_review";
 
+export type VerifyStatus = "none" | "pending" | "approved" | "rejected";
+
+export const VERIFY_LABEL: Record<VerifyStatus, { text: string; cls: string }> = {
+  none: { text: "ยังไม่ยื่นเอกสาร", cls: "border-slate-200 bg-slate-50 text-slate-500" },
+  pending: { text: "รอบริษัทอนุมัติ", cls: "border-amber-200 bg-amber-50 text-amber-600" },
+  approved: { text: "อนุมัติแล้ว", cls: "border-gold/40 bg-gold-light text-[#7a5c1f]" },
+  rejected: { text: "ไม่ผ่าน — แก้ไขแล้วยื่นใหม่", cls: "border-red-200 bg-red-50 text-red-600" },
+};
+
 export type DeliveryMethod = "meetup" | "cod" | "shipping" | "prepay";
 
 export const DELIVERY_METHODS: {
@@ -73,6 +82,14 @@ export interface Seller {
   companyVerified: boolean; // ยืนยันตัวตนกับบริษัทแล้ว → ใช้วิธีรับของแบบโอนก่อนได้
   shopName: string | null; // ต้องกรอกก่อนลงประกาศ
   shopAbout: string | null;
+  contactPhone: string | null; // เบอร์ติดต่อร้าน (บังคับ)
+  bankName: string | null;
+  bankAccountNo: string | null;
+  bankAccountName: string | null;
+  companyName: string | null;
+  bookBankUrl: string | null; // path เอกสารใน bucket docs (private)
+  verifyStatus: VerifyStatus;
+  verifyNote: string | null;
   lineUserId?: string;
 }
 

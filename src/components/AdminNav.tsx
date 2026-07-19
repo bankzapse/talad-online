@@ -1,14 +1,16 @@
 import Link from "next/link";
-import { getModerationQueue, getPayments } from "@/lib/data";
+import { getModerationQueue, getPayments, getPendingVerifications } from "@/lib/data";
 
 export default async function AdminNav({ active }: { active: string }) {
   const queue = (await getModerationQueue()).length;
   const pendingPay = (await getPayments()).filter((p) => p.status === "pending").length;
+  const pendingVerify = (await getPendingVerifications()).length;
 
   const items = [
     { key: "home", href: "/admin", label: "ภาพรวม" },
     { key: "moderation", href: "/admin/moderation", label: `คิวตรวจ${queue ? ` (${queue})` : ""}` },
     { key: "categories", href: "/admin/categories", label: "ประเภทสินค้า" },
+    { key: "verify", href: "/admin/verify", label: `อนุมัติร้าน${pendingVerify ? ` (${pendingVerify})` : ""}` },
     { key: "payments", href: "/admin/payments", label: `การชำระเงิน${pendingPay ? ` (${pendingPay})` : ""}` },
     { key: "reports", href: "/admin/reports", label: "สรุปรายได้" },
     { key: "packages", href: "/admin/packages", label: "แพ็กสมาชิก" },

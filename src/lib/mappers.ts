@@ -14,6 +14,14 @@ export function rowToSeller(r: Record<string, unknown>): Seller {
     companyVerified: Boolean(r.company_verified),
     shopName: (r.shop_name as string) ?? null,
     shopAbout: (r.shop_about as string) ?? null,
+    contactPhone: (r.contact_phone as string) ?? null,
+    bankName: (r.bank_name as string) ?? null,
+    bankAccountNo: (r.bank_account_no as string) ?? null,
+    bankAccountName: (r.bank_account_name as string) ?? null,
+    companyName: (r.company_name as string) ?? null,
+    bookBankUrl: (r.book_bank_url as string) ?? null,
+    verifyStatus: ((r.verify_status as string) ?? "none") as Seller["verifyStatus"],
+    verifyNote: (r.verify_note as string) ?? null,
     lineUserId: (r.line_user_id as string) ?? undefined,
   };
 }

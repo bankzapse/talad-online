@@ -3,25 +3,29 @@ import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
 import { saveShopProfileAction } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
+import DocUpload from "@/components/DocUpload";
 import { safeNext } from "@/lib/url";
+import { VERIFY_LABEL } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const ERR: Record<string, string> = {
   name: "กรุณากรอกชื่อร้าน (อย่างน้อย 2 ตัวอักษร)",
+  phone: "กรุณากรอกเบอร์ติดต่อให้ถูกต้อง (มือถือ 10 หลัก)",
   db: "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง",
 };
 
 export default async function ShopProfile({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; saved?: string }>;
 }) {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
   const sp = await searchParams;
   const next = safeNext(sp.next, "/sell");
   const isFirstTime = !seller.shopName;
+  const vs = VERIFY_LABEL[seller.verifyStatus];
 
   return (
     <div className="mx-auto max-w-lg">
@@ -30,27 +34,41 @@ export default async function ShopProfile({
       </Link>
 
       <div className="mt-4 card p-6">
-        <h1 className="text-lg font-bold">ข้อมูลร้านค้า</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {isFirstTime
-            ? "กรอกชื่อร้านให้เรียบร้อยก่อน จึงจะลงประกาศได้"
-            : "แก้ไขข้อมูลร้านของคุณ"}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h1 className="text-lg font-bold">ข้อมูลร้านค้า</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              {isFirstTime ? "กรอกข้อมูลร้านให้เรียบร้อยก่อนลงประกาศ" : "แก้ไขข้อมูลร้านของคุณ"}
+            </p>
+          </div>
+          <span className={`chip shrink-0 ${vs.cls}`}>{vs.text}</span>
+        </div>
 
-        {isFirstTime && next.includes("/sell/new") && (
-          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-            📌 ต้องตั้งชื่อร้านก่อนลงประกาศ — ผู้ซื้อจะเห็นชื่อนี้ในทุกประกาศของคุณ
+        {seller.verifyStatus === "rejected" && seller.verifyNote && (
+          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+            เหตุผล: {seller.verifyNote}
           </div>
         )}
-
+        {sp.saved === "1" && (
+          <div className="mt-3 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
+            ✓ บันทึกข้อมูลร้านแล้ว
+          </div>
+        )}
+        {isFirstTime && next.includes("/sell/new") && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+            📌 ต้องกรอกชื่อร้านและเบอร์ติดต่อก่อนลงประกาศ
+          </div>
+        )}
         {sp.error && (
           <div className="mt-3 rounded-lg bg-red-50 p-2 text-center text-xs text-red-600">
             {ERR[sp.error] ?? "เกิดข้อผิดพลาด"}
           </div>
         )}
 
-        <form action={saveShopProfileAction} className="mt-5 space-y-3">
+        <form action={saveShopProfileAction} className="mt-5 space-y-4">
           <input type="hidden" name="next" value={next} />
+
+          {/* ---- ข้อมูลพื้นฐาน (บังคับ) ---- */}
           <div>
             <label className="label">ชื่อร้าน *</label>
             <input
@@ -62,25 +80,107 @@ export default async function ShopProfile({
               className="input"
               placeholder="เช่น ร้านป้าสมใจ ผักสด"
             />
-            <p className="mt-1 text-xs text-slate-400">
-              ชื่อที่ผู้ซื้อเห็นบนประกาศ — ใส่ชื่อที่จำง่ายและตรงกับของที่ขาย
-            </p>
           </div>
 
           <div>
-            <label className="label">เกี่ยวกับร้าน (ไม่บังคับ)</label>
+            <label className="label">เบอร์ติดต่อร้าน *</label>
+            <input
+              name="contactPhone"
+              type="tel"
+              required
+              defaultValue={seller.contactPhone ?? ""}
+              className="input"
+              placeholder="08xxxxxxxx"
+            />
+            <p className="mt-1 text-xs text-slate-400">ผู้ซื้อใช้ติดต่อคุณ · ทีมงานใช้ยืนยันตัวตน</p>
+          </div>
+
+          <div>
+            <label className="label">เกี่ยวกับร้าน</label>
             <textarea
               name="shopAbout"
-              rows={3}
+              rows={2}
               maxLength={300}
               defaultValue={seller.shopAbout ?? ""}
               className="input"
-              placeholder="เช่น ขายผักปลอดสารจากสวนตัวเอง ส่งทุกเช้า เปิด 6 โมง–เที่ยง"
+              placeholder="เช่น ขายผักปลอดสารจากสวนตัวเอง เปิด 6 โมง–เที่ยง"
             />
           </div>
 
+          {/* ---- เอกสารยืนยันร้าน (ไม่บังคับ) ---- */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <div className="text-sm font-semibold text-ink">
+              🛡️ ยืนยันร้านกับบริษัท <span className="font-normal text-slate-400">(ไม่บังคับ)</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              ยื่นเอกสารเพื่อรับสิทธิ์ใช้วิธีรับของแบบ <b>โอนเงินก่อน</b> และป้ายร้านยืนยัน —
+              ทีมงานจะตรวจสอบก่อนอนุมัติ
+            </p>
+
+            <div className="mt-3 space-y-3">
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="label">ธนาคาร</label>
+                  <input
+                    name="bankName"
+                    defaultValue={seller.bankName ?? ""}
+                    className="input"
+                    placeholder="เช่น ไทยพาณิชย์"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="label">เลขที่บัญชี</label>
+                  <input
+                    name="bankAccountNo"
+                    defaultValue={seller.bankAccountNo ?? ""}
+                    className="input"
+                    placeholder="xxx-xxxxxx-x"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label">ชื่อบัญชี</label>
+                <input
+                  name="bankAccountName"
+                  defaultValue={seller.bankAccountName ?? ""}
+                  className="input"
+                  placeholder="ชื่อเจ้าของบัญชี"
+                />
+              </div>
+
+              <div>
+                <label className="label">ชื่อบริษัท / ชื่อกิจการ</label>
+                <input
+                  name="companyName"
+                  defaultValue={seller.companyName ?? ""}
+                  className="input"
+                  placeholder="ถ้าเป็นนิติบุคคล ใส่ชื่อตามทะเบียน"
+                />
+              </div>
+
+              <div>
+                <label className="label">หน้าสมุดบัญชี (รูป/PDF)</label>
+                <DocUpload existing={seller.bookBankUrl} />
+              </div>
+
+              <label className="flex items-start gap-2 text-xs text-slate-600">
+                <input
+                  type="checkbox"
+                  name="submitForVerify"
+                  className="mt-0.5"
+                  disabled={seller.verifyStatus === "approved"}
+                />
+                <span>
+                  ส่งเอกสารให้บริษัทตรวจสอบและอนุมัติ
+                  {seller.verifyStatus === "approved" && " (ร้านนี้อนุมัติแล้ว)"}
+                </span>
+              </label>
+            </div>
+          </div>
+
           <SubmitButton className="btn-primary w-full py-2.5" pendingText="กำลังบันทึก…">
-            {isFirstTime ? "บันทึกและไปลงประกาศ" : "บันทึก"}
+            {isFirstTime ? "บันทึกและไปลงประกาศ" : "บันทึกข้อมูลร้าน"}
           </SubmitButton>
         </form>
       </div>

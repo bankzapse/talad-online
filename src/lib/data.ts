@@ -217,6 +217,14 @@ export async function upsertSellerFromLine(
       companyVerified: false,
       shopName: null,
       shopAbout: null,
+      contactPhone: null,
+      bankName: null,
+      bankAccountNo: null,
+      bankAccountName: null,
+      companyName: null,
+      bookBankUrl: null,
+      verifyStatus: "none",
+      verifyNote: null,
       lineUserId,
     };
     db.sellers.push(s);
@@ -699,24 +707,94 @@ export async function setSellerBlocked(sellerId: string, blocked: boolean): Prom
   await logAdmin(blocked ? "แบนผู้ใช้" : "ปลดแบน", s?.displayName ?? sellerId);
 }
 
+export interface ShopProfileInput {
+  shopName: string;
+  shopAbout: string;
+  contactPhone: string;
+  bankName?: string;
+  bankAccountNo?: string;
+  bankAccountName?: string;
+  companyName?: string;
+  bookBankUrl?: string | null;
+  submitForVerify?: boolean; // ยื่นเอกสารให้บริษัทอนุมัติ
+}
+
 export async function updateShopProfile(
   sellerId: string,
-  shopName: string,
-  shopAbout: string
+  p: ShopProfileInput
 ): Promise<boolean> {
+  const patch: Record<string, unknown> = {
+    shop_name: p.shopName,
+    shop_about: p.shopAbout,
+    contact_phone: p.contactPhone,
+    bank_name: p.bankName ?? null,
+    bank_account_no: p.bankAccountNo ?? null,
+    bank_account_name: p.bankAccountName ?? null,
+    company_name: p.companyName ?? null,
+  };
+  if (p.bookBankUrl) patch.book_bank_url = p.bookBankUrl;
+  if (p.submitForVerify) {
+    patch.verify_status = "pending";
+    patch.verify_note = null;
+  }
+
   if (isSupabaseReady()) {
-    const { error } = await sb()
-      .from("sellers")
-      .update({ shop_name: shopName, shop_about: shopAbout })
-      .eq("id", sellerId);
+    const { error } = await sb().from("sellers").update(patch).eq("id", sellerId);
     return !error;
   }
   const s = db.sellers.find((x) => x.id === sellerId);
   if (s) {
-    s.shopName = shopName;
-    s.shopAbout = shopAbout;
+    s.shopName = p.shopName;
+    s.shopAbout = p.shopAbout;
+    s.contactPhone = p.contactPhone;
+    s.bankName = p.bankName ?? null;
+    s.bankAccountNo = p.bankAccountNo ?? null;
+    s.bankAccountName = p.bankAccountName ?? null;
+    s.companyName = p.companyName ?? null;
+    if (p.bookBankUrl) s.bookBankUrl = p.bookBankUrl;
+    if (p.submitForVerify) {
+      s.verifyStatus = "pending";
+      s.verifyNote = null;
+    }
   }
   return true;
+}
+
+// admin: อนุมัติ/ปฏิเสธเอกสารยืนยันร้าน
+export async function reviewShopVerification(
+  sellerId: string,
+  approve: boolean,
+  note = ""
+): Promise<void> {
+  const seller = await getSeller(sellerId);
+  const patch = {
+    verify_status: approve ? "approved" : "rejected",
+    company_verified: approve,
+    verify_note: approve ? null : note || "เอกสารไม่ผ่าน",
+  };
+  if (isSupabaseReady()) {
+    await sb().from("sellers").update(patch).eq("id", sellerId);
+  } else {
+    const s = db.sellers.find((x) => x.id === sellerId);
+    if (s) {
+      s.verifyStatus = approve ? "approved" : "rejected";
+      s.companyVerified = approve;
+      s.verifyNote = approve ? null : note || "เอกสารไม่ผ่าน";
+    }
+  }
+  await logAdmin(
+    approve ? "อนุมัติเอกสารร้าน" : "ปฏิเสธเอกสารร้าน",
+    seller?.shopName ?? seller?.displayName ?? sellerId
+  );
+}
+
+// ร้านที่ยื่นเอกสารรออนุมัติ
+export async function getPendingVerifications(): Promise<Seller[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb().from("sellers").select("*").eq("verify_status", "pending");
+    return (data ?? []).map(rowToSeller);
+  }
+  return db.sellers.filter((s) => s.verifyStatus === "pending");
 }
 
 export async function setSellerCompanyVerified(sellerId: string, verified: boolean): Promise<void> {
