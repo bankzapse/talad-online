@@ -407,7 +407,8 @@ export interface NewListingInput {
 
 export async function createListing(input: NewListingInput): Promise<Listing> {
   const flag = checkBlocklist(input.title, input.description);
-  const status: Listing["status"] = flag.hit ? "pending_review" : "active";
+  // ประกาศใหม่เริ่มเป็น "ฉบับร่าง" เสมอ — ผู้ขายต้องกดส่งขออนุมัติ แล้วทีมงานอนุมัติจึงแสดง
+  const status: Listing["status"] = "draft";
   const deliveryMethod = input.deliveryMethod ?? "meetup";
 
   if (isSupabaseReady()) {
@@ -435,6 +436,14 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
     if (res.error) {
       res = await sb().from("listings").insert(base).select("*").single();
     }
+    // เผื่อยังไม่ได้ migrate สถานะ 'draft' เข้า enum → ใช้ pending_review แทน (ยังไม่แสดงเหมือนกัน)
+    if (res.error) {
+      res = await sb()
+        .from("listings")
+        .insert({ ...base, status: "pending_review", delivery_method: deliveryMethod })
+        .select("*")
+        .single();
+    }
     if (res.error || !res.data) throw new Error(res.error?.message ?? "insert failed");
     return rowToListing(res.data);
   }
@@ -458,6 +467,7 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
     createdAt: new Date().toISOString(),
     reportCount: 0,
     flaggedKeywords: flag.matched,
+    reviewNote: null,
   };
   db.listings.unshift(listing);
   db.counters.listingsCreated += 1;
@@ -482,6 +492,10 @@ export interface EditListingInput {
 export async function updateListing(id: string, input: EditListingInput): Promise<void> {
   // แก้ข้อความแล้วต้องตรวจ blocklist ใหม่ — กันแก้ประกาศให้กลายเป็นของต้องห้ามทีหลัง
   const flag = checkBlocklist(input.title, input.description);
+  const current = await getListing(id);
+  // ประกาศที่แสดงอยู่/ขายแล้ว เมื่อถูกแก้ต้องผ่านการอนุมัติอีกครั้ง
+  // ส่วนฉบับร่างกับที่รออนุมัติอยู่ ให้คงสถานะเดิม
+  const resubmit = current?.status === "active" || current?.status === "sold" || flag.hit;
 
   if (isSupabaseReady()) {
     const patch: Record<string, unknown> = {
@@ -498,7 +512,11 @@ export async function updateListing(id: string, input: EditListingInput): Promis
       delivery_method: input.deliveryMethod,
       flagged_keywords: flag.matched,
     };
-    if (flag.hit) patch.status = "pending_review";
+    // แก้ประกาศที่อนุมัติแล้ว → กลับเข้าคิวตรวจใหม่ (ไม่งั้นแก้เป็นอะไรก็ได้หลังผ่านอนุมัติ)
+    if (resubmit) {
+      patch.status = "pending_review";
+      patch.review_note = null;
+    }
     await sb().from("listings").update(patch).eq("id", id);
     return;
   }
@@ -518,7 +536,7 @@ export async function updateListing(id: string, input: EditListingInput): Promis
     images: input.images,
     deliveryMethod: input.deliveryMethod,
     flaggedKeywords: flag.matched,
-    ...(flag.hit ? { status: "pending_review" as const } : {}),
+    ...(resubmit ? { status: "pending_review" as const, reviewNote: null } : {}),
   });
 }
 
@@ -529,6 +547,54 @@ export async function deleteListing(id: string): Promise<void> {
   }
   const i = db.listings.findIndex((x) => x.id === id);
   if (i >= 0) db.listings.splice(i, 1);
+}
+
+// ผู้ขายกดส่งขออนุมัติ — ได้เฉพาะฉบับร่าง (หรือที่ถูกตีกลับ)
+export async function submitListingForReview(id: string): Promise<void> {
+  if (isSupabaseReady()) {
+    const res = await sb()
+      .from("listings")
+      .update({ status: "pending_review", review_note: null })
+      .eq("id", id);
+    if (res.error) await sb().from("listings").update({ status: "pending_review" }).eq("id", id);
+    return;
+  }
+  const l = db.listings.find((x) => x.id === id);
+  if (l) {
+    l.status = "pending_review";
+    l.reviewNote = null;
+  }
+}
+
+// admin ไม่อนุมัติ → ตีกลับเป็นฉบับร่างพร้อมเหตุผล ให้ผู้ขายแก้แล้วส่งใหม่ได้
+export async function rejectListing(id: string, note: string): Promise<void> {
+  const reason = note || "ไม่ผ่านการตรวจสอบ";
+  if (isSupabaseReady()) {
+    const res = await sb()
+      .from("listings")
+      .update({ status: "draft", review_note: reason })
+      .eq("id", id);
+    if (res.error) await sb().from("listings").update({ status: "hidden" }).eq("id", id);
+  } else {
+    const l = db.listings.find((x) => x.id === id);
+    if (l) {
+      l.status = "draft";
+      l.reviewNote = reason;
+    }
+  }
+  await logAdmin("ไม่อนุมัติประกาศ", `${id} — ${reason}`);
+}
+
+// คิวรออนุมัติของ admin (แยกจากประกาศที่ถูกรายงาน)
+export async function countPendingListings(): Promise<number> {
+  if (isSupabaseReady()) {
+    const { count } = await sb()
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending_review");
+    return count ?? 0;
+  }
+  return db.listings.filter((l) => l.status === "pending_review").length;
 }
 
 export async function updateListingStatus(id: string, status: Listing["status"]): Promise<void> {

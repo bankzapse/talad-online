@@ -35,6 +35,8 @@ import {
   moveCategory,
   updateListing,
   deleteListing,
+  submitListingForReview,
+  rejectListing,
   createOrder,
   getOrder,
   updateOrder,
@@ -166,7 +168,19 @@ export async function createListingAction(_sellerId: string, formData: FormData)
     images,
     deliveryMethod,
   });
-  redirect("/sell");
+  redirect("/sell?created=1");
+}
+
+// ผู้ขายส่งประกาศให้ทีมงานอนุมัติ
+export async function submitListingAction(id: string) {
+  const seller = await getCurrentSeller();
+  if (!seller || seller.blocked) redirect("/login");
+  const listing = await getListing(id);
+  if (!listing || listing.sellerId !== seller!.id) redirect("/sell");
+  // ส่งได้เฉพาะฉบับร่าง — กันกดซ้ำตอนที่รออนุมัติหรืออนุมัติแล้ว
+  if (listing!.status !== "draft") redirect("/sell");
+  await submitListingForReview(id);
+  redirect("/sell?submitted=1");
 }
 
 export async function setListingStatusAction(id: string, status: "active" | "sold" | "hidden") {
@@ -300,6 +314,13 @@ export async function rejectPaymentAction(paymentId: string) {
 }
 export async function moderateAction(id: string, action: "approve" | "remove") {
   await updateListingStatus(id, action === "approve" ? "active" : "hidden");
+  redirect("/admin/moderation");
+}
+
+// ไม่อนุมัติ — ตีกลับให้ผู้ขายแก้ พร้อมเหตุผล (ต่างจาก "ระงับ" ที่ปิดถาวร)
+export async function rejectListingAction(id: string, formData: FormData) {
+  const note = String(formData.get("note") || "").trim().slice(0, 200);
+  await rejectListing(id, note);
   redirect("/admin/moderation");
 }
 export async function adjustExpiryAction(sellerId: string, formData: FormData) {

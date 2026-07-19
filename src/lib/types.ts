@@ -21,7 +21,17 @@ export const UNITS: Unit[] = [
   "โหล",
 ];
 
-export type ListingStatus = "active" | "sold" | "hidden" | "pending_review";
+export type ListingStatus = "draft" | "pending_review" | "active" | "sold" | "hidden";
+
+// ประกาศต้องผ่านการอนุมัติจากทีมงานก่อนแสดงต่อผู้ซื้อ
+// draft (ร่าง) → pending_review (ส่งขออนุมัติ) → active (อนุมัติแล้ว)
+export const LISTING_STATUS: Record<ListingStatus, { text: string; cls: string }> = {
+  draft: { text: "ฉบับร่าง — ยังไม่ส่งขออนุมัติ", cls: "border-slate-200 bg-slate-50 text-slate-500" },
+  pending_review: { text: "รอทีมงานอนุมัติ", cls: "border-amber-200 bg-amber-50 text-amber-600" },
+  active: { text: "แสดงอยู่", cls: "border-brand/30 bg-brand-light text-brand-dark" },
+  sold: { text: "ขายแล้ว", cls: "border-slate-200 bg-slate-50 text-slate-500" },
+  hidden: { text: "ซ่อน/ถูกระงับ", cls: "border-red-200 bg-red-50 text-red-600" },
+};
 
 export type VerifyStatus = "none" | "pending" | "approved" | "rejected";
 
@@ -119,6 +129,7 @@ export interface Listing {
   createdAt: string;
   reportCount: number;
   flaggedKeywords: string[]; // คำที่ติด blocklist → เข้าคิว admin
+  reviewNote: string | null; // เหตุผลที่ทีมงานไม่อนุมัติ
 }
 
 export interface MembershipPackage {

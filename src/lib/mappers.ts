@@ -71,6 +71,7 @@ export function rowToListing(r: Record<string, unknown>): Listing {
     createdAt: String(r.created_at),
     reportCount: Number(r.report_count ?? 0),
     flaggedKeywords: (r.flagged_keywords as string[]) ?? [],
+    reviewNote: (r.review_note as string) ?? null,
   };
 }
 

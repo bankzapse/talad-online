@@ -110,6 +110,7 @@ export const LISTINGS: Listing[] = [
     createdAt: "2026-07-14T01:00:00.000Z",
     reportCount: 0,
     flaggedKeywords: [],
+    reviewNote: null,
   },
   {
     id: "l-2",
@@ -130,6 +131,7 @@ export const LISTINGS: Listing[] = [
     createdAt: "2026-07-13T04:00:00.000Z",
     reportCount: 0,
     flaggedKeywords: [],
+    reviewNote: null,
   },
   {
     id: "l-3",
@@ -150,6 +152,7 @@ export const LISTINGS: Listing[] = [
     createdAt: "2026-07-14T00:30:00.000Z",
     reportCount: 0,
     flaggedKeywords: [],
+    reviewNote: null,
   },
   {
     id: "l-4",
@@ -170,6 +173,7 @@ export const LISTINGS: Listing[] = [
     createdAt: "2026-07-12T05:00:00.000Z",
     reportCount: 0,
     flaggedKeywords: [],
+    reviewNote: null,
   },
   {
     id: "l-5",
@@ -190,6 +194,7 @@ export const LISTINGS: Listing[] = [
     createdAt: "2026-07-13T08:00:00.000Z",
     reportCount: 0,
     flaggedKeywords: [],
+    reviewNote: null,
   },
   {
     id: "l-6",
@@ -210,6 +215,7 @@ export const LISTINGS: Listing[] = [
     createdAt: "2026-07-11T09:00:00.000Z",
     reportCount: 0,
     flaggedKeywords: [],
+    reviewNote: null,
   },
   {
     id: "l-7",
@@ -230,6 +236,7 @@ export const LISTINGS: Listing[] = [
     createdAt: "2026-07-10T02:00:00.000Z",
     reportCount: 0,
     flaggedKeywords: [],
+    reviewNote: null,
   },
   {
     id: "l-8",
@@ -250,5 +257,6 @@ export const LISTINGS: Listing[] = [
     createdAt: "2026-07-14T02:00:00.000Z",
     reportCount: 0,
     flaggedKeywords: [],
+    reviewNote: null,
   },
 ];

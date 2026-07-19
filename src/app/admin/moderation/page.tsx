@@ -1,7 +1,7 @@
 import AdminNav from "@/components/AdminNav";
 import { getModerationQueue, getSellers, getCategories } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
-import { moderateAction } from "@/app/actions";
+import { moderateAction, rejectListingAction } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,8 @@ export default async function Moderation() {
       <AdminNav active="moderation" />
 
       <p className="mb-3 text-sm text-slate-500">
-        ประกาศที่ติดคำต้องห้าม หรือถูกผู้ใช้รายงาน จะเข้าคิวที่นี่ (auto-publish อื่นๆ ไม่ต้องรอ)
+        <b>ทุกประกาศต้องผ่านการอนุมัติที่นี่ก่อนแสดงต่อผู้ซื้อ</b> — ผู้ขายกดส่งขออนุมัติแล้วเข้าคิวนี้
+        รวมถึงประกาศที่ติดคำต้องห้ามหรือถูกผู้ใช้รายงาน
       </p>
 
       {queue.length === 0 ? (
@@ -33,6 +34,7 @@ export default async function Moderation() {
             const cat = catMap.get(l.categoryId);
             const approve = moderateAction.bind(null, l.id, "approve");
             const remove = moderateAction.bind(null, l.id, "remove");
+            const reject = rejectListingAction.bind(null, l.id);
             return (
               <div key={l.id} className="card p-3">
                 <div className="flex items-start gap-3">
@@ -59,11 +61,26 @@ export default async function Moderation() {
                   </div>
                   <div className="flex shrink-0 flex-col gap-1">
                     <form action={approve}>
-                      <SubmitButton className="btn-outline w-full px-3 py-1 text-xs">อนุมัติ</SubmitButton>
+                      <SubmitButton
+                        className="btn-primary w-full px-3 py-1 text-xs"
+                        pendingText="กำลังอนุมัติ…"
+                      >
+                        ✓ อนุมัติ — แสดงเลย
+                      </SubmitButton>
+                    </form>
+                    <form action={reject} className="flex gap-1">
+                      <input
+                        name="note"
+                        placeholder="เหตุผล"
+                        className="input w-24 py-1 text-xs"
+                      />
+                      <SubmitButton className="btn-outline px-2 py-1 text-xs">
+                        ตีกลับ
+                      </SubmitButton>
                     </form>
                     <form action={remove}>
                       <SubmitButton className="btn w-full bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600">
-                        ลบ/ซ่อน
+                        ระงับถาวร
                       </SubmitButton>
                     </form>
                   </div>

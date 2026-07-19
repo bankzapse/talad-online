@@ -3,23 +3,23 @@ import { redirect } from "next/navigation";
 import { getCurrentSeller } from "@/lib/auth";
 import { getSellerListings, getCategories, countPendingOrders } from "@/lib/data";
 import { formatPrice, daysLeft } from "@/lib/format";
-import { setListingStatusAction, logout } from "@/app/actions";
+import { LISTING_STATUS } from "@/lib/types";
+import { setListingStatusAction, submitListingAction, logout } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 import { TRIAL_DAYS } from "@/lib/packages";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABEL: Record<string, string> = {
-  active: "แสดงอยู่",
-  sold: "ขายแล้ว",
-  hidden: "ซ่อน/หมดอายุ",
-  pending_review: "รอตรวจสอบ",
-};
-
 export default async function SellHome({
   searchParams,
 }: {
-  searchParams: Promise<{ verified?: string; saved?: string; deleted?: string }>;
+  searchParams: Promise<{
+    verified?: string;
+    saved?: string;
+    deleted?: string;
+    submitted?: string;
+    created?: string;
+  }>;
 }) {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
@@ -39,6 +39,17 @@ export default async function SellHome({
       {sp.verified === "1" && (
         <div className="mb-4 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
           ✓ ยืนยันเบอร์สำเร็จ! ร้านคุณได้ป้าย &ldquo;ยืนยันเบอร์แล้ว&rdquo;
+        </div>
+      )}
+      {sp.created === "1" && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          📝 บันทึกเป็น <b>ฉบับร่าง</b> แล้ว — กด &ldquo;ส่งขออนุมัติ&rdquo; ที่ประกาศด้านล่าง
+          ทีมงานตรวจแล้วจึงจะแสดงต่อผู้ซื้อ
+        </div>
+      )}
+      {sp.submitted === "1" && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          📨 ส่งขออนุมัติแล้ว — ทีมงานจะตรวจสอบก่อนแสดงประกาศต่อผู้ซื้อ
         </div>
       )}
       {sp.saved === "1" && (
@@ -148,22 +159,19 @@ export default async function SellHome({
                       ซ่อน–รอต่ออายุ
                     </span>
                   ) : (
-                    <span
-                      className={`chip shrink-0 ${
-                        l.status === "active"
-                          ? "border-brand/30 bg-brand-light text-brand-dark"
-                          : l.status === "pending_review"
-                          ? "border-amber-200 bg-amber-50 text-amber-600"
-                          : "border-slate-200 bg-slate-50 text-slate-500"
-                      }`}
-                    >
-                      {STATUS_LABEL[l.status]}
+                    <span className={`chip shrink-0 ${LISTING_STATUS[l.status].cls}`}>
+                      {LISTING_STATUS[l.status].text}
                     </span>
                   )}
                 </div>
                 <div className="text-xs text-slate-400">
                   {formatPrice(l.price, l.unit)} · 📍 {l.marketName || l.province}
                 </div>
+                {l.status === "draft" && l.reviewNote && (
+                  <div className="mt-1 rounded bg-red-50 px-2 py-1 text-xs text-red-600">
+                    ทีมงานไม่อนุมัติ: {l.reviewNote} — แก้ไขแล้วส่งใหม่ได้
+                  </div>
+                )}
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <Link
@@ -172,6 +180,16 @@ export default async function SellHome({
                 >
                   แก้ไข
                 </Link>
+                {l.status === "draft" && (
+                  <form action={submitListingAction.bind(null, l.id)}>
+                    <SubmitButton
+                      className="btn-primary px-2 py-1 text-xs"
+                      pendingText="กำลังส่ง…"
+                    >
+                      ส่งขออนุมัติ
+                    </SubmitButton>
+                  </form>
+                )}
                 {l.status === "active" && (
                   <form action={setListingStatusAction.bind(null, l.id, "sold")}>
                     <SubmitButton className="btn-outline px-2 py-1 text-xs">ขายแล้ว</SubmitButton>
