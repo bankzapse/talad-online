@@ -12,7 +12,7 @@ import { isBuyerLoggedIn } from "@/lib/auth";
 import TrustBadge from "@/components/TrustBadge";
 import ContactButton from "@/components/ContactButton";
 import ReportButton from "@/components/ReportButton";
-import { DELIVERY_METHODS } from "@/lib/types";
+import Gallery from "@/components/Gallery";
 
 export const dynamic = "force-dynamic";
 
@@ -43,14 +43,11 @@ export default async function ListingDetail({
       </Link>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="card flex aspect-square items-center justify-center bg-gradient-to-br from-slate-100 to-slate-50 text-8xl">
-          {listing.images[0] ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={listing.images[0]} alt={listing.title} className="h-full w-full rounded-xl object-cover" />
-          ) : (
-            <span>{cat?.emoji ?? "🛍️"}</span>
-          )}
-        </div>
+        <Gallery
+          images={listing.images}
+          alt={listing.title}
+          fallback={cat?.emoji ?? "🛍️"}
+        />
 
         <div>
           <div className="flex items-start justify-between gap-2">
@@ -85,7 +82,6 @@ export default async function ListingDetail({
 
           {/* ความปลอดภัยตามวิธีรับของ */}
           {(() => {
-            const dm = DELIVERY_METHODS.find((d) => d.value === listing.deliveryMethod);
             const kind =
               listing.deliveryMethod === "shipping"
                 ? "risk"
@@ -112,8 +108,7 @@ export default async function ListingDetail({
                   {kind === "verified" &&
                     "ร้านนี้ผ่านการยืนยันตัวตนกับบริษัทแล้ว หากมีปัญหาติดต่อทีมงานได้"}
                   {kind === "risk" &&
-                    "เสี่ยงถูกโกง! ตรวจสอบผู้ขายให้มั่นใจก่อนโอน · อย่าโอนถ้าไม่แน่ใจ"}{" "}
-                  ({dm?.label})
+                    "เสี่ยงถูกโกง! ตรวจสอบผู้ขายให้มั่นใจก่อนโอน · อย่าโอนถ้าไม่แน่ใจ"}
                 </p>
               </div>
             );
