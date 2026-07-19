@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentSeller } from "@/lib/auth";
-import { getSellerListings, getCategories, getAreas } from "@/lib/data";
+import { getSellerListings, getCategories } from "@/lib/data";
 import { formatPrice, daysLeft } from "@/lib/format";
 import { setListingStatusAction, logout } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
@@ -24,13 +24,11 @@ export default async function SellHome({
   if (!seller) redirect("/login");
   const sp = await searchParams;
 
-  const [listings, categories, areas] = await Promise.all([
+  const [listings, categories] = await Promise.all([
     getSellerListings(seller.id),
     getCategories(),
-    getAreas(),
   ]);
   const catMap = new Map(categories.map((c) => [c.id, c]));
-  const areaMap = new Map(areas.map((a) => [a.id, a]));
   const dleft = daysLeft(seller.membershipExpiresAt);
   const active = dleft !== null && dleft > 0;
 
@@ -106,7 +104,6 @@ export default async function SellHome({
         )}
         {listings.map((l) => {
           const cat = catMap.get(l.categoryId);
-          const area = areaMap.get(l.areaId);
           return (
             <div key={l.id} className="card flex items-center gap-3 p-3">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-2xl">
@@ -134,7 +131,7 @@ export default async function SellHome({
                   )}
                 </div>
                 <div className="text-xs text-slate-400">
-                  {formatPrice(l.price, l.unit)} · 📍 {area?.market}
+                  {formatPrice(l.price, l.unit)} · 📍 {l.marketName || l.province}
                 </div>
               </div>
               <div className="flex shrink-0 gap-1">

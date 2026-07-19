@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
-import { getCategories, getAreas } from "@/lib/data";
+import { getCategories } from "@/lib/data";
+import { getProvinces } from "@/lib/geo";
 import { UNITS, DELIVERY_METHODS } from "@/lib/types";
 import { createListingAction } from "@/app/actions";
 import ImageUpload from "@/components/ImageUpload";
+import LocationPicker from "@/components/LocationPicker";
 import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +15,8 @@ export default async function NewListing() {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
 
-  const [categories, areas] = await Promise.all([getCategories(), getAreas()]);
+  const categories = await getCategories();
+  const provinces = getProvinces();
   const action = createListingAction.bind(null, seller.id);
 
   return (
@@ -60,34 +63,21 @@ export default async function NewListing() {
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="label">หมวด *</label>
-              <select name="categoryId" required className="input" defaultValue="">
-                <option value="" disabled>
-                  เลือกหมวด
+          <div>
+            <label className="label">หมวด *</label>
+            <select name="categoryId" required className="input" defaultValue="">
+              <option value="" disabled>
+                เลือกหมวด
+              </option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji} {c.name}
                 </option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.emoji} {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="label">พื้นที่/ตลาด *</label>
-              <select name="areaId" required className="input" defaultValue="">
-                <option value="" disabled>
-                  เลือกพื้นที่
-                </option>
-                {areas.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.market} ({a.province})
-                  </option>
-                ))}
-              </select>
-            </div>
+              ))}
+            </select>
           </div>
+
+          <LocationPicker provinces={provinces} />
 
           <div>
             <label className="label">วิธีรับของ *</label>

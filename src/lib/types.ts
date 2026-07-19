@@ -77,7 +77,11 @@ export interface Listing {
   price: number;
   unit: Unit;
   categoryId: string;
-  areaId: string;
+  areaId?: string | null; // เดิม (เลิกใช้) — เก็บไว้เผื่อข้อมูลเก่า
+  province: string;
+  district: string;
+  subdistrict: string;
+  marketName: string;
   images: string[];
   status: ListingStatus;
   deliveryMethod: DeliveryMethod;

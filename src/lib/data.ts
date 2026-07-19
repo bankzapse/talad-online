@@ -235,7 +235,7 @@ export async function getPackages(activeOnly = false): Promise<MembershipPackage
 // ---------- listings ----------
 export interface ListingQuery {
   categoryId?: string;
-  areaId?: string;
+  province?: string;
   q?: string;
   sort?: "newest" | "price_asc" | "price_desc";
   includeHidden?: boolean;
@@ -256,7 +256,7 @@ export async function queryListings(opts: ListingQuery = {}): Promise<Listing[]>
       q = q.gt("sellers.membership_expires_at", nowIso).eq("sellers.blocked", false);
     }
     if (opts.categoryId) q = q.eq("category_id", opts.categoryId);
-    if (opts.areaId) q = q.eq("area_id", opts.areaId);
+    if (opts.province) q = q.eq("province", opts.province);
     if (opts.q) q = q.or(`title.ilike.%${opts.q}%,description.ilike.%${opts.q}%`);
     if (opts.sort === "price_asc") q = q.order("price", { ascending: true });
     else if (opts.sort === "price_desc") q = q.order("price", { ascending: false });
@@ -282,7 +282,7 @@ export async function queryListings(opts: ListingQuery = {}): Promise<Listing[]>
     });
   }
   if (opts.categoryId) rows = rows.filter((l) => l.categoryId === opts.categoryId);
-  if (opts.areaId) rows = rows.filter((l) => l.areaId === opts.areaId);
+  if (opts.province) rows = rows.filter((l) => l.province === opts.province);
   if (opts.q) {
     const qq = opts.q.toLowerCase().trim();
     rows = rows.filter(
@@ -346,7 +346,10 @@ export interface NewListingInput {
   price: number;
   unit: Listing["unit"];
   categoryId: string;
-  areaId: string;
+  province: string;
+  district: string;
+  subdistrict: string;
+  marketName: string;
   images?: string[];
   deliveryMethod?: Listing["deliveryMethod"];
 }
@@ -364,7 +367,10 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
       price: input.price,
       unit: input.unit,
       category_id: input.categoryId,
-      area_id: input.areaId,
+      province: input.province,
+      district: input.district,
+      subdistrict: input.subdistrict,
+      market_name: input.marketName,
       images: input.images ?? [],
       status,
       flagged_keywords: flag.matched,
@@ -390,7 +396,11 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
     price: input.price,
     unit: input.unit,
     categoryId: input.categoryId,
-    areaId: input.areaId,
+    areaId: null,
+    province: input.province,
+    district: input.district,
+    subdistrict: input.subdistrict,
+    marketName: input.marketName,
     images: input.images ?? [],
     status,
     deliveryMethod,

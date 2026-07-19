@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   getListing,
   getCategory,
-  getArea,
   getSeller,
   getSellerActiveCount,
   isSellerActive,
@@ -26,9 +25,8 @@ export default async function ListingDetail({
   const listing = await getListing(id);
   if (!listing || listing.status === "hidden") notFound();
 
-  const [cat, area, seller, buyerLoggedIn] = await Promise.all([
+  const [cat, seller, buyerLoggedIn] = await Promise.all([
     getCategory(listing.categoryId),
-    getArea(listing.areaId),
     getSeller(listing.sellerId),
     isBuyerLoggedIn(),
   ]);
@@ -69,7 +67,7 @@ export default async function ListingDetail({
               {cat?.emoji} {cat?.name}
             </span>
             <span className="chip border-slate-200 bg-slate-50 text-slate-600">
-              📍 {area?.market} · {area?.province}
+              📍 {listing.marketName} · {listing.subdistrict} {listing.district} {listing.province}
             </span>
             <span className="chip border-slate-200 bg-slate-50 text-slate-400">
               ลงเมื่อ {timeAgo(listing.createdAt)}
@@ -128,7 +126,7 @@ export default async function ListingDetail({
               lineContact={lineContact}
             />
             <p className="mt-2 rounded-lg bg-amber-50 p-2 text-center text-xs text-amber-700">
-              🛡️ สินค้าอยู่ที่ <b>{area?.province}</b> — หากคุณอยู่คนละจังหวัด แนะนำเลือกผู้ขายที่รับ
+              🛡️ สินค้าอยู่ที่ <b>{listing.province}</b> — หากคุณอยู่คนละจังหวัด แนะนำเลือกผู้ขายที่รับ
               COD/นัดรับ · <b>ห้ามโอนมัดจำ/ค่าสินค้าล่วงหน้า</b> ให้คนไม่รู้จัก
             </p>
           </div>

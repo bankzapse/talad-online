@@ -2,7 +2,8 @@ import Link from "next/link";
 import Filters from "@/components/Filters";
 import ListingCard from "@/components/ListingCard";
 import CategorySidebar from "@/components/CategorySidebar";
-import { getCategories, getAreas, getSellers, queryListings } from "@/lib/data";
+import { getCategories, getSellers, queryListings } from "@/lib/data";
+import { getProvinces } from "@/lib/geo";
 
 export const dynamic = "force-dynamic";
 
@@ -15,22 +16,21 @@ export default async function Home({
   searchParams: Promise<{ [k: string]: string | undefined }>;
 }) {
   const sp = await searchParams;
-  const [categories, areas, sellers, listings] = await Promise.all([
+  const [categories, sellers, listings] = await Promise.all([
     getCategories(),
-    getAreas(),
     getSellers(),
     queryListings({
       categoryId: sp.category || undefined,
-      areaId: sp.area || undefined,
+      province: sp.province || undefined,
       q: sp.q || undefined,
       sort: (sp.sort as "newest" | "price_asc" | "price_desc") || "newest",
     }),
   ]);
 
   const catMap = new Map(categories.map((c) => [c.id, c]));
-  const areaMap = new Map(areas.map((a) => [a.id, a]));
   const sellerMap = new Map(sellers.map((s) => [s.id, s]));
-  const filtering = Boolean(sp.category || sp.area || sp.q);
+  const provinces = getProvinces();
+  const filtering = Boolean(sp.category || sp.province || sp.q);
 
   return (
     <div className="space-y-6">
@@ -53,7 +53,7 @@ export default async function Home({
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/75">
               <span><b className="text-white">{listings.length}</b> ประกาศ</span>
               <span>·</span>
-              <span><b className="text-white">{areas.length}</b> ตลาด/พื้นที่</span>
+              <span><b className="text-white">{provinces.length}</b> จังหวัด</span>
               <span>·</span>
               <span><b className="text-white">{categories.length}</b> หมวด</span>
             </div>
@@ -96,7 +96,7 @@ export default async function Home({
           </div>
 
           <div>
-            <Filters categories={categories} areas={areas} />
+            <Filters categories={categories} provinces={provinces} />
 
             <div className="mb-4 flex items-baseline justify-between">
               <h2 className="section-title">
@@ -122,8 +122,7 @@ export default async function Home({
                     key={l.id}
                     listing={l}
                     emoji={catMap.get(l.categoryId)?.emoji ?? "🛍️"}
-                    areaMarket={areaMap.get(l.areaId)?.market ?? ""}
-                    sellerVerified={Boolean(sellerMap.get(l.sellerId)?.phoneVerified)}
+                          sellerVerified={Boolean(sellerMap.get(l.sellerId)?.phoneVerified)}
                   />
                 ))}
               </div>

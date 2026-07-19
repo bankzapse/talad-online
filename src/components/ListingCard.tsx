@@ -6,12 +6,10 @@ import { formatPrice, timeAgo } from "@/lib/format";
 export default function ListingCard({
   listing,
   emoji,
-  areaMarket,
   sellerVerified,
 }: {
   listing: Listing;
   emoji: string;
-  areaMarket: string;
   sellerVerified: boolean;
 }) {
   return (
@@ -45,7 +43,7 @@ export default function ListingCard({
           {formatPrice(listing.price, listing.unit)}
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
-          <span className="line-clamp-1">📍 {areaMarket}</span>
+          <span className="line-clamp-1">📍 {listing.marketName || listing.province}</span>
           <span className="shrink-0">{timeAgo(listing.createdAt)}</span>
         </div>
         <div className="mt-1">

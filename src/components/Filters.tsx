@@ -1,14 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Category, Area } from "@/lib/types";
+import type { Category } from "@/lib/types";
 
 export default function Filters({
   categories,
-  areas,
+  provinces,
 }: {
   categories: Category[];
-  areas: Area[];
+  provinces: { id: number; name: string }[];
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -58,16 +58,16 @@ export default function Filters({
           </select>
         </div>
         <div className="w-full sm:w-52">
-          <label className="label">พื้นที่/ตลาด</label>
+          <label className="label">จังหวัด</label>
           <select
             className="input"
-            value={cur("area")}
-            onChange={(e) => update("area", e.target.value)}
+            value={cur("province")}
+            onChange={(e) => update("province", e.target.value)}
           >
-            <option value="">ทุกพื้นที่</option>
-            {areas.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.market} ({a.province})
+            <option value="">ทุกจังหวัด</option>
+            {provinces.map((p) => (
+              <option key={p.id} value={p.name}>
+                {p.name}
               </option>
             ))}
           </select>

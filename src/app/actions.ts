@@ -29,6 +29,7 @@ import type { Unit } from "@/lib/types";
 import { safeNext } from "@/lib/url";
 import { isLineLoginConfigured } from "@/lib/line-login";
 import { verifySlipAmount } from "@/lib/slip";
+import { provinceName, districtName, subdistrictName, isValidGeo } from "@/lib/geo";
 import { setAdminPassword } from "@/lib/admin-auth";
 
 // ---------- auth (LINE Login stub) ----------
@@ -77,7 +78,10 @@ export async function createListingAction(_sellerId: string, formData: FormData)
   const description = String(formData.get("description") || "").trim().slice(0, 2000);
   const price = Number(formData.get("price") || 0);
   const categoryId = String(formData.get("categoryId") || "");
-  const areaId = String(formData.get("areaId") || "");
+  const provinceId = Number(formData.get("provinceId") || 0);
+  const districtId = Number(formData.get("districtId") || 0);
+  const subdistrictId = Number(formData.get("subdistrictId") || 0);
+  const marketName = String(formData.get("marketName") || "").trim().slice(0, 80);
   const dmRaw = String(formData.get("deliveryMethod") || "meetup");
   let deliveryMethod = (["meetup", "cod", "shipping", "prepay"].includes(dmRaw)
     ? dmRaw
@@ -88,7 +92,8 @@ export async function createListingAction(_sellerId: string, formData: FormData)
   }
 
   // validation
-  if (!title || !categoryId || !areaId) redirect("/sell/new?error=required");
+  if (!title || !categoryId || !marketName) redirect("/sell/new?error=required");
+  if (!isValidGeo(provinceId, districtId, subdistrictId)) redirect("/sell/new?error=area");
   if (!Number.isFinite(price) || price < 0 || price > 100_000_000)
     redirect("/sell/new?error=price");
 
@@ -99,7 +104,10 @@ export async function createListingAction(_sellerId: string, formData: FormData)
     price,
     unit: String(formData.get("unit") || "ชิ้น") as Unit,
     categoryId,
-    areaId,
+    province: provinceName(provinceId)!,
+    district: districtName(districtId)!,
+    subdistrict: subdistrictName(subdistrictId)!,
+    marketName,
     images,
     deliveryMethod,
   });
