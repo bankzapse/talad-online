@@ -3,13 +3,14 @@
 import { useState } from "react";
 
 // อัปโหลดรูป → เก็บ URL ใน hidden input ชื่อ "images" (JSON array) ให้ server action อ่าน
-// เลือกได้หลายรูปพร้อมกัน (สูงสุด 10 รูป) + ลบรายรูปได้
+// เลือกได้หลายรูปพร้อมกัน (สูงสุด 10 รูป) · ลบรายรูป · สลับตำแหน่งได้ (ลาก หรือกดลูกศร)
 const MAX_IMAGES = 10;
 
 export default function ImageUpload() {
   const [urls, setUrls] = useState<string[]>([]);
   const [busy, setBusy] = useState(0);
   const [msg, setMsg] = useState<string | null>(null);
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
 
   async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files ?? []);
@@ -62,16 +63,42 @@ export default function ImageUpload() {
     setMsg(null);
   }
 
+  // ย้ายรูปจากตำแหน่ง from ไป to (ใช้ทั้งปุ่มลูกศรและการลาก)
+  function move(from: number, to: number) {
+    setUrls((u) => {
+      if (to < 0 || to >= u.length || from === to) return u;
+      const next = [...u];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    setMsg(null);
+  }
+
   return (
     <div>
       <input type="hidden" name="images" value={JSON.stringify(urls)} />
       <div className="flex flex-wrap gap-2">
         {urls.map((u, i) => (
-          <div key={u} className="group relative">
+          <div
+            key={u}
+            draggable
+            onDragStart={() => setDragFrom(i)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => {
+              if (dragFrom !== null) move(dragFrom, i);
+              setDragFrom(null);
+            }}
+            onDragEnd={() => setDragFrom(null)}
+            className={`group relative cursor-grab active:cursor-grabbing ${
+              dragFrom === i ? "opacity-40" : ""
+            }`}
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={u}
               alt=""
+              draggable={false}
               className="h-16 w-16 rounded-lg border border-slate-200 object-cover"
             />
             {i === 0 && (
@@ -87,6 +114,30 @@ export default function ImageUpload() {
             >
               ×
             </button>
+
+            {/* ปุ่มสลับตำแหน่ง — ใช้ได้บนมือถือที่ลากไม่ถนัด */}
+            {urls.length > 1 && (
+              <div className="absolute inset-x-0 bottom-0 flex justify-between rounded-b-lg bg-black/45">
+                <button
+                  type="button"
+                  onClick={() => move(i, i - 1)}
+                  disabled={i === 0}
+                  aria-label="ย้ายไปทางซ้าย"
+                  className="px-1.5 text-xs text-white disabled:opacity-30"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(i, i + 1)}
+                  disabled={i === urls.length - 1}
+                  aria-label="ย้ายไปทางขวา"
+                  className="px-1.5 text-xs text-white disabled:opacity-30"
+                >
+                  ›
+                </button>
+              </div>
+            )}
           </div>
         ))}
 
@@ -114,6 +165,7 @@ export default function ImageUpload() {
 
       <p className="mt-1 text-xs text-slate-400">
         {urls.length}/{MAX_IMAGES} รูป · เลือกหลายรูปพร้อมกันได้ · รูปแรกเป็นรูปปก
+        {urls.length > 1 && " · ลากรูปหรือกด ‹ › เพื่อสลับตำแหน่ง"}
       </p>
       {msg && <p className="mt-1 text-xs text-amber-600">{msg}</p>}
     </div>
