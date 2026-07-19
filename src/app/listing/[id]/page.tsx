@@ -88,24 +88,33 @@ export default async function ListingDetail({
           {/* ความปลอดภัยตามวิธีรับของ */}
           {(() => {
             const dm = DELIVERY_METHODS.find((d) => d.value === listing.deliveryMethod);
-            const safe = listing.deliveryMethod !== "shipping";
+            const kind =
+              listing.deliveryMethod === "shipping"
+                ? "risk"
+                : listing.deliveryMethod === "prepay"
+                ? "verified"
+                : "safe";
+            const cls =
+              kind === "risk"
+                ? "border-red-200 bg-red-50 text-red-700"
+                : kind === "verified"
+                ? "border-gold/40 bg-gold-light text-[#7a5c1f]"
+                : "border-brand/30 bg-brand-soft text-brand-dark";
             return (
-              <div
-                className={`mt-5 rounded-xl border p-3 text-sm ${
-                  safe
-                    ? "border-brand/30 bg-brand-soft text-brand-dark"
-                    : "border-red-200 bg-red-50 text-red-700"
-                }`}
-              >
+              <div className={`mt-5 rounded-xl border p-3 text-sm ${cls}`}>
                 <div className="font-semibold">
                   {listing.deliveryMethod === "meetup" && "🤝 นัดรับเจอตัว · จ่ายเงินสด"}
                   {listing.deliveryMethod === "cod" && "📦 เก็บเงินปลายทาง (COD)"}
+                  {listing.deliveryMethod === "prepay" && "🛡️ โอนก่อนรับสินค้า · ร้านยืนยันกับบริษัทแล้ว"}
                   {listing.deliveryMethod === "shipping" && "⚠️ ส่งพัสดุ · ต้องโอนก่อน"}
                 </div>
                 <p className="mt-0.5 text-xs">
-                  {safe
-                    ? "ไม่ต้องโอนเงินล่วงหน้า — จ่ายตอนได้รับ/เห็นสินค้า ปลอดภัยกว่า"
-                    : "เสี่ยงถูกโกง! ตรวจสอบผู้ขายให้มั่นใจก่อนโอน · อย่าโอนถ้าไม่แน่ใจ"}{" "}
+                  {kind === "safe" &&
+                    "ไม่ต้องโอนเงินล่วงหน้า — จ่ายตอนได้รับ/เห็นสินค้า ปลอดภัยกว่า"}
+                  {kind === "verified" &&
+                    "ร้านนี้ผ่านการยืนยันตัวตนกับบริษัทแล้ว หากมีปัญหาติดต่อทีมงานได้"}
+                  {kind === "risk" &&
+                    "เสี่ยงถูกโกง! ตรวจสอบผู้ขายให้มั่นใจก่อนโอน · อย่าโอนถ้าไม่แน่ใจ"}{" "}
                   ({dm?.label})
                 </p>
               </div>

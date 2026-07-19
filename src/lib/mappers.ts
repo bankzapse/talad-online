@@ -11,6 +11,7 @@ export function rowToSeller(r: Record<string, unknown>): Seller {
     membershipExpiresAt: (r.membership_expires_at as string) ?? null,
     trialUsed: Boolean(r.trial_used),
     blocked: Boolean(r.blocked),
+    companyVerified: Boolean(r.company_verified),
     lineUserId: (r.line_user_id as string) ?? undefined,
   };
 }

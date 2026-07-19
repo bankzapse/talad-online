@@ -214,6 +214,7 @@ export async function upsertSellerFromLine(
       membershipExpiresAt: null,
       trialUsed: false,
       blocked: false,
+      companyVerified: false,
       lineUserId,
     };
     db.sellers.push(s);
@@ -684,6 +685,17 @@ export async function setSellerBlocked(sellerId: string, blocked: boolean): Prom
     if (local) local.blocked = blocked;
   }
   await logAdmin(blocked ? "แบนผู้ใช้" : "ปลดแบน", s?.displayName ?? sellerId);
+}
+
+export async function setSellerCompanyVerified(sellerId: string, verified: boolean): Promise<void> {
+  const s = await getSeller(sellerId);
+  if (isSupabaseReady()) {
+    await sb().from("sellers").update({ company_verified: verified }).eq("id", sellerId);
+  } else {
+    const local = db.sellers.find((x) => x.id === sellerId);
+    if (local) local.companyVerified = verified;
+  }
+  await logAdmin(verified ? "ยืนยันร้านกับบริษัท" : "ยกเลิกการยืนยันร้าน", s?.displayName ?? sellerId);
 }
 
 export async function upsertPackage(pkg: MembershipPackage): Promise<void> {

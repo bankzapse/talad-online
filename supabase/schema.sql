@@ -30,6 +30,9 @@ create table if not exists sellers (
   blocked boolean not null default false
 );
 
+-- ยืนยันตัวตนร้านกับบริษัท → ใช้วิธีรับของแบบ 'โอนก่อน' ได้
+alter table sellers add column if not exists company_verified boolean not null default false;
+
 -- ---------- listings ----------
 do $$ begin
   create type listing_status as enum ('active','sold','hidden','pending_review');

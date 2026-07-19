@@ -31,6 +31,7 @@ export const SELLERS: Seller[] = [
     membershipExpiresAt: "2026-08-30T02:00:00.000Z",
     trialUsed: true,
     blocked: false,
+    companyVerified: false,
   },
   {
     id: "seller-nid",
@@ -41,6 +42,7 @@ export const SELLERS: Seller[] = [
     membershipExpiresAt: "2026-07-25T02:00:00.000Z",
     trialUsed: true,
     blocked: false,
+    companyVerified: false,
   },
   {
     id: "seller-golf",
@@ -51,6 +53,7 @@ export const SELLERS: Seller[] = [
     membershipExpiresAt: null, // อยู่ช่วงทดลอง
     trialUsed: false,
     blocked: false,
+    companyVerified: false,
   },
 ];
 

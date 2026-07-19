@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 // อัปโหลดรูป → เก็บ URL ใน hidden input ชื่อ "images" (JSON array) ให้ server action อ่าน
+const MAX_IMAGES = 10;
+
 export default function ImageUpload() {
   const [urls, setUrls] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -11,6 +13,11 @@ export default function ImageUpload() {
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (urls.length >= MAX_IMAGES) {
+      setMsg(`อัปได้สูงสุด ${MAX_IMAGES} รูป`);
+      e.target.value = "";
+      return;
+    }
     setBusy(true);
     setMsg(null);
     const fd = new FormData();
@@ -36,11 +43,14 @@ export default function ImageUpload() {
           // eslint-disable-next-line @next/next/no-img-element
           <img key={u} src={u} alt="" className="h-16 w-16 rounded-lg border border-slate-200 object-cover" />
         ))}
-        <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border border-dashed border-slate-300 text-2xl text-slate-400 hover:bg-slate-50">
-          {busy ? "…" : "+"}
-          <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={busy} />
-        </label>
+        {urls.length < MAX_IMAGES && (
+          <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border border-dashed border-slate-300 text-2xl text-slate-400 hover:bg-slate-50">
+            {busy ? "…" : "+"}
+            <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={busy} />
+          </label>
+        )}
       </div>
+      <p className="mt-1 text-xs text-slate-400">{urls.length}/{MAX_IMAGES} รูป</p>
       {msg && <p className="mt-1 text-xs text-amber-600">{msg}</p>}
     </div>
   );

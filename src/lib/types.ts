@@ -23,17 +23,26 @@ export const UNITS: Unit[] = [
 
 export type ListingStatus = "active" | "sold" | "hidden" | "pending_review";
 
-export type DeliveryMethod = "meetup" | "cod" | "shipping";
+export type DeliveryMethod = "meetup" | "cod" | "shipping" | "prepay";
 
 export const DELIVERY_METHODS: {
   value: DeliveryMethod;
   label: string;
   short: string;
+  requiresCompanyVerified?: boolean;
 }[] = [
   { value: "meetup", label: "นัดรับเอง — จ่ายเงินสดตอนรับของ", short: "นัดรับ" },
   { value: "cod", label: "ส่งพัสดุเก็บเงินปลายทาง (COD)", short: "COD" },
   { value: "shipping", label: "ส่งพัสดุ — โอนก่อนส่ง", short: "ส่งพัสดุ" },
+  {
+    value: "prepay",
+    label: "โอนเงินก่อนรับสินค้า (เฉพาะร้านที่ยืนยันกับบริษัท)",
+    short: "โอนก่อน",
+    requiresCompanyVerified: true,
+  },
 ];
+
+export const MAX_LISTING_IMAGES = 10;
 
 export interface Category {
   id: string;
@@ -56,6 +65,7 @@ export interface Seller {
   membershipExpiresAt: string | null; // ISO — null = ยังไม่เคยมีสมาชิก/หมดสิทธิ์
   trialUsed: boolean;
   blocked: boolean;
+  companyVerified: boolean; // ยืนยันตัวตนกับบริษัทแล้ว → ใช้ "โอนก่อนรับของ" ได้
   lineUserId?: string;
 }
 

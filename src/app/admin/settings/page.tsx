@@ -1,6 +1,6 @@
 import AdminNav from "@/components/AdminNav";
 import { getPaymentSettings } from "@/lib/data";
-import { savePaymentSettingsAction } from "@/app/actions";
+import { savePaymentSettingsAction, saveAdminPasswordAction } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,21 @@ export default async function AdminSettings({
       <h1 className="mb-4 text-xl font-bold">ตั้งค่าบัญชีรับเงิน</h1>
       <AdminNav active="settings" />
 
+      {sp.saved === "pw" && (
+        <div className="mb-3 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
+          ✓ เปลี่ยนรหัส admin แล้ว — ครั้งต่อไปใช้รหัสใหม่เข้า /admin-gate
+        </div>
+      )}
+      {sp.error === "pwshort" && (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          รหัสต้องยาวอย่างน้อย 8 ตัวอักษร
+        </div>
+      )}
+      {sp.error === "pwmatch" && (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          รหัสยืนยันไม่ตรงกัน
+        </div>
+      )}
       {sp.saved === "1" && (
         <div className="mb-3 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
           ✓ บันทึกแล้ว — ผู้ขายจะเห็นบัญชีใหม่ในหน้าชำระเงินทันที
@@ -62,6 +77,22 @@ export default async function AdminSettings({
           <input name="accountName" defaultValue={s.accountName} className="input" />
         </div>
         <SubmitButton className="btn-primary" pendingText="กำลังบันทึก…">บันทึก</SubmitButton>
+      </form>
+
+      <h2 className="mt-8 mb-2 text-sm font-medium text-slate-500">รหัสผ่าน Admin</h2>
+      <form action={saveAdminPasswordAction} className="card max-w-lg space-y-3 p-5">
+        <p className="text-xs text-slate-400">
+          เก็บเป็น hash ใน Supabase (ตาราง settings) — เปลี่ยนได้ทันทีโดยไม่ต้อง redeploy
+        </p>
+        <div>
+          <label className="label">รหัสใหม่ (อย่างน้อย 8 ตัว)</label>
+          <input name="password" type="password" required minLength={8} className="input" autoComplete="new-password" />
+        </div>
+        <div>
+          <label className="label">ยืนยันรหัสใหม่</label>
+          <input name="confirm" type="password" required minLength={8} className="input" autoComplete="new-password" />
+        </div>
+        <SubmitButton className="btn-primary" pendingText="กำลังบันทึก…">เปลี่ยนรหัส</SubmitButton>
       </form>
     </div>
   );

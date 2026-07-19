@@ -22,12 +22,14 @@ import {
   resubmitPaymentSlip,
   updatePaymentSettings,
   setSellerPhoneVerified,
+  setSellerCompanyVerified,
 } from "@/lib/data";
 import { isValidThaiMobile, normalizePhone, verifyOtp } from "@/lib/otp";
 import type { Unit } from "@/lib/types";
 import { safeNext } from "@/lib/url";
 import { isLineLoginConfigured } from "@/lib/line-login";
 import { verifySlipAmount } from "@/lib/slip";
+import { setAdminPassword } from "@/lib/admin-auth";
 
 // ---------- auth (LINE Login stub) ----------
 // เมื่อ LINE Login เปิดใช้จริงแล้ว → ปิด demo login ทั้งหมด (บังคับผ่าน LINE เท่านั้น)
@@ -66,7 +68,7 @@ export async function createListingAction(_sellerId: string, formData: FormData)
   let images: string[] = [];
   try {
     const parsed = JSON.parse(String(formData.get("images") || "[]"));
-    if (Array.isArray(parsed)) images = parsed.filter((x) => typeof x === "string").slice(0, 8);
+    if (Array.isArray(parsed)) images = parsed.filter((x) => typeof x === "string").slice(0, 10);
   } catch {
     images = [];
   }
@@ -77,9 +79,13 @@ export async function createListingAction(_sellerId: string, formData: FormData)
   const categoryId = String(formData.get("categoryId") || "");
   const areaId = String(formData.get("areaId") || "");
   const dmRaw = String(formData.get("deliveryMethod") || "meetup");
-  const deliveryMethod = (["meetup", "cod", "shipping"].includes(dmRaw)
+  let deliveryMethod = (["meetup", "cod", "shipping", "prepay"].includes(dmRaw)
     ? dmRaw
-    : "meetup") as "meetup" | "cod" | "shipping";
+    : "meetup") as "meetup" | "cod" | "shipping" | "prepay";
+  // "โอนก่อนรับสินค้า" ใช้ได้เฉพาะร้านที่ยืนยันกับบริษัทแล้ว
+  if (deliveryMethod === "prepay" && !seller!.companyVerified) {
+    redirect("/sell/new?error=prepay");
+  }
 
   // validation
   if (!title || !categoryId || !areaId) redirect("/sell/new?error=required");
@@ -212,6 +218,20 @@ export async function updateCategoryAction(id: string, formData: FormData) {
 export async function deleteCategoryAction(id: string) {
   const ok = await deleteCategory(id);
   redirect(ok ? "/admin/categories" : "/admin/categories?error=inuse");
+}
+
+export async function toggleCompanyVerifyAction(sellerId: string, verified: boolean) {
+  await setSellerCompanyVerified(sellerId, verified);
+  redirect("/admin");
+}
+
+export async function saveAdminPasswordAction(formData: FormData) {
+  const pw = String(formData.get("password") || "");
+  const confirm = String(formData.get("confirm") || "");
+  if (pw.length < 8) redirect("/admin/settings?error=pwshort");
+  if (pw !== confirm) redirect("/admin/settings?error=pwmatch");
+  const ok = await setAdminPassword(pw);
+  redirect(ok ? "/admin/settings?saved=pw" : "/admin/settings?error=migrate");
 }
 
 export async function savePaymentSettingsAction(formData: FormData) {

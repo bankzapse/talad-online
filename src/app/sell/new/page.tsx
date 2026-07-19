@@ -92,7 +92,9 @@ export default async function NewListing() {
           <div>
             <label className="label">วิธีรับของ *</label>
             <select name="deliveryMethod" className="input" defaultValue="meetup">
-              {DELIVERY_METHODS.map((d) => (
+              {DELIVERY_METHODS.filter(
+                (d) => !d.requiresCompanyVerified || seller.companyVerified
+              ).map((d) => (
                 <option key={d.value} value={d.value}>
                   {d.label}
                 </option>
@@ -101,6 +103,12 @@ export default async function NewListing() {
             <p className="mt-1 text-xs text-slate-400">
               แนะนำ &ldquo;นัดรับ&rdquo; หรือ &ldquo;COD&rdquo; เพื่อความปลอดภัยของผู้ซื้อ (ไม่ต้องโอนล่วงหน้า)
             </p>
+            {!seller.companyVerified && (
+              <p className="mt-1 rounded-lg bg-slate-50 p-2 text-xs text-slate-500">
+                🔒 ตัวเลือก <b>&ldquo;โอนเงินก่อนรับสินค้า&rdquo;</b> ใช้ได้เฉพาะร้านที่ยืนยันตัวตนกับบริษัทแล้ว —
+                ติดต่อทีมงานที่หน้า <a href="/help" className="underline">ช่วยเหลือ</a> เพื่อขอยืนยันร้าน
+              </p>
+            )}
           </div>
 
           <p className="rounded-lg bg-slate-50 p-2 text-xs text-slate-500">

@@ -1,7 +1,7 @@
 import AdminNav from "@/components/AdminNav";
 import { getAnalytics, getSellers, getAdminLogs } from "@/lib/data";
 import { formatBaht, daysLeft, timeAgo } from "@/lib/format";
-import { toggleBlockAction } from "@/app/actions";
+import { toggleBlockAction, toggleCompanyVerifyAction } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +49,7 @@ export default async function AdminHome() {
             {sellers.map((s) => {
               const dleft = daysLeft(s.membershipExpiresAt);
               const toggle = toggleBlockAction.bind(null, s.id, !s.blocked);
+              const toggleVerify = toggleCompanyVerifyAction.bind(null, s.id, !s.companyVerified);
               return (
                 <div key={s.id} className="card flex items-center gap-2 p-3">
                   <div className="min-w-0 flex-1">
@@ -61,8 +62,20 @@ export default async function AdminHome() {
                         ? "หมดอายุ"
                         : "ยังไม่ทดลอง"}
                       {s.blocked && " · 🚫 ถูกแบน"}
+                      {s.companyVerified && " · 🛡️ ยืนยันกับบริษัท"}
                     </div>
                   </div>
+                  <form action={toggleVerify}>
+                    <SubmitButton
+                      className={`btn px-2 py-1 text-xs ${
+                        s.companyVerified
+                          ? "border border-gold/40 bg-gold-light text-[#7a5c1f]"
+                          : "btn-outline"
+                      }`}
+                    >
+                      {s.companyVerified ? "ยกเลิกยืนยัน" : "ยืนยันร้าน"}
+                    </SubmitButton>
+                  </form>
                   <form action={toggle}>
                     <SubmitButton className="btn-outline px-2 py-1 text-xs">
                       {s.blocked ? "ปลดแบน" : "แบน"}
