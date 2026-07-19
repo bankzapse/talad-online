@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getModerationQueue, getPayments, getPendingVerifications } from "@/lib/data";
+import { logoutAdmin } from "@/app/actions";
 
 export default async function AdminNav({ active }: { active: string }) {
   const queue = (await getModerationQueue()).length;
@@ -32,6 +33,11 @@ export default async function AdminNav({ active }: { active: string }) {
           {it.label}
         </Link>
       ))}
+      <form action={logoutAdmin} className="ml-auto">
+        <button className="rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-red-50 hover:text-red-600">
+          ออกจากระบบ admin
+        </button>
+      </form>
     </div>
   );
 }

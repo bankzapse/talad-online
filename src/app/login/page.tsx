@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getSellers } from "@/lib/data";
-import { loginAsSeller, loginAsBuyer } from "@/app/actions";
+import { loginAsSeller, loginAsBuyer, logout, logoutBuyer, logoutAdmin, logoutAll } from "@/app/actions";
 import { isLineLoginConfigured } from "@/lib/line-login";
+import { getCurrentSeller, isBuyerLoggedIn, isAdminLoggedIn } from "@/lib/auth";
 import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +17,60 @@ export default async function LoginPage({
   const lineOn = isLineLoginConfigured();
   const next = sp.next || (isBuyer ? "/" : "/sell");
 
+  // ---- สถานะการเข้าสู่ระบบตอนนี้ (ทุก role) ----
+  const seller = await getCurrentSeller();
+  const buyerIn = await isBuyerLoggedIn();
+  const adminIn = await isAdminLoggedIn();
+  const anyIn = Boolean(seller) || buyerIn || adminIn;
+
+  const statusCard = anyIn ? (
+    <div className="card mb-4 p-5">
+      <div className="text-sm font-semibold text-ink">สถานะการเข้าสู่ระบบตอนนี้</div>
+      <ul className="mt-3 space-y-2 text-sm">
+        <li className="flex items-center justify-between gap-3">
+          <span>🏪 ผู้ขาย — {seller ? (seller.shopName ?? seller.displayName) : "ยังไม่ได้เข้าสู่ระบบ"}</span>
+          {seller && (
+            <form action={logout}>
+              <button className="text-xs text-slate-400 hover:text-red-600">ออกจากระบบ</button>
+            </form>
+          )}
+        </li>
+        <li className="flex items-center justify-between gap-3">
+          <span>👤 ผู้ซื้อ — {buyerIn ? "เข้าสู่ระบบแล้ว" : "ยังไม่ได้เข้าสู่ระบบ"}</span>
+          {buyerIn && (
+            <form action={logoutBuyer}>
+              <button className="text-xs text-slate-400 hover:text-red-600">ออกจากระบบ</button>
+            </form>
+          )}
+        </li>
+        <li className="flex items-center justify-between gap-3">
+          <span>🔒 แอดมิน — {adminIn ? "เข้าสู่ระบบแล้ว" : "ยังไม่ได้เข้าสู่ระบบ"}</span>
+          {adminIn && (
+            <form action={logoutAdmin}>
+              <button className="text-xs text-slate-400 hover:text-red-600">ออกจากระบบ</button>
+            </form>
+          )}
+        </li>
+      </ul>
+      <form action={logoutAll} className="mt-4">
+        <SubmitButton className="btn-outline w-full py-2 text-sm" pendingText="กำลังออก…">
+          ออกจากระบบทั้งหมด
+        </SubmitButton>
+      </form>
+    </div>
+  ) : (
+    <div className="card mb-4 p-4 text-center text-sm text-slate-500">
+      ยังไม่ได้เข้าสู่ระบบ
+    </div>
+  );
+
   // ---- ผู้ซื้อ ----
   if (isBuyer) {
     const lineHref = `/api/auth/line?buyer=1&next=${encodeURIComponent(next)}`;
     const doDemo = loginAsBuyer.bind(null, next);
     return (
       <div className="mx-auto max-w-md">
+        {statusCard}
         <div className="card p-6 text-center">
           <div className="text-4xl">💬</div>
           <h1 className="mt-2 text-lg font-bold">เข้าสู่ระบบเพื่อติดต่อผู้ขาย</h1>
@@ -51,6 +100,7 @@ export default async function LoginPage({
 
   return (
     <div className="mx-auto max-w-md">
+      {statusCard}
       <div className="card p-6">
         <div className="text-center">
           <div className="text-4xl">🏪</div>

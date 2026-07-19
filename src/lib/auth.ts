@@ -10,6 +10,12 @@ import type { Seller } from "./types";
 
 export const SESSION_COOKIE = "tr_seller";
 export const BUYER_COOKIE = "tr_buyer"; // ผู้ซื้อล็อกอิน (gate ปุ่มติดต่อ)
+export const ADMIN_COOKIE = "admin_ok"; // ผู้ดูแลระบบ (middleware เทียบกับ ADMIN_KEY)
+
+export async function isAdminLoggedIn(): Promise<boolean> {
+  const jar = await cookies();
+  return Boolean(jar.get(ADMIN_COOKIE)?.value);
+}
 
 export async function getCurrentSeller(): Promise<Seller | null> {
   const jar = await cookies();

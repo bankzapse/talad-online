@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE, BUYER_COOKIE, getCurrentSeller } from "@/lib/auth";
+import { SESSION_COOKIE, BUYER_COOKIE, ADMIN_COOKIE, getCurrentSeller } from "@/lib/auth";
 import {
   createListing,
   updateListingStatus,
@@ -55,10 +55,37 @@ export async function loginAsBuyer(next?: string) {
   redirect(safeNext(next, "/"));
 }
 
-export async function logout() {
+// ---------- ออกจากระบบ (ครบทุก role) ----------
+// ผู้ขาย · ผู้ซื้อ · แอดมิน — แยกปุ่มได้ และมี "ออกทั้งหมด" สำหรับเครื่องที่ใช้ร่วมกัน
+// รับได้ทั้งแบบ bind(null, "/path") และแบบ <form action={logout}> ตรง ๆ (arg เป็น FormData)
+function logoutTarget(next: unknown, fallback: string) {
+  return safeNext(typeof next === "string" ? next : undefined, fallback);
+}
+
+export async function logout(next?: unknown) {
   const jar = await cookies();
   jar.delete(SESSION_COOKIE);
-  redirect("/");
+  redirect(logoutTarget(next, "/"));
+}
+
+export async function logoutBuyer(next?: unknown) {
+  const jar = await cookies();
+  jar.delete(BUYER_COOKIE);
+  redirect(logoutTarget(next, "/"));
+}
+
+export async function logoutAdmin(next?: unknown) {
+  const jar = await cookies();
+  jar.delete(ADMIN_COOKIE);
+  redirect(logoutTarget(next, "/"));
+}
+
+export async function logoutAll(next?: unknown) {
+  const jar = await cookies();
+  jar.delete(SESSION_COOKIE);
+  jar.delete(BUYER_COOKIE);
+  jar.delete(ADMIN_COOKIE);
+  redirect(logoutTarget(next, "/"));
 }
 
 // ---------- listings ----------

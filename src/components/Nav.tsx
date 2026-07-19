@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { getCurrentSeller } from "@/lib/auth";
+import { getCurrentSeller, isBuyerLoggedIn } from "@/lib/auth";
 import { daysLeft } from "@/lib/format";
+import { logout, logoutBuyer } from "@/app/actions";
 
 export default async function Nav() {
   const seller = await getCurrentSeller();
+  const buyerIn = await isBuyerLoggedIn();
   const dleft = seller ? daysLeft(seller.membershipExpiresAt) : null;
 
   return (
@@ -38,6 +40,23 @@ export default async function Nav() {
                 </span>
               )}
               <Link href="/sell" className="btn-outline">ร้านของฉัน</Link>
+              <form action={logout}>
+                <button className="rounded-full px-3 py-2 text-slate-500 hover:bg-white/70 hover:text-slate-700">
+                  ออกจากระบบ
+                </button>
+              </form>
+            </>
+          ) : buyerIn ? (
+            <>
+              <span className="chip border-brand/25 bg-brand-soft text-brand-dark">
+                👤 ผู้ซื้อ
+              </span>
+              <Link href="/login" className="btn-outline">ลงขายกับเรา</Link>
+              <form action={logoutBuyer}>
+                <button className="rounded-full px-3 py-2 text-slate-500 hover:bg-white/70 hover:text-slate-700">
+                  ออกจากระบบ
+                </button>
+              </form>
             </>
           ) : (
             <Link href="/login" className="btn-primary">
