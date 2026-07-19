@@ -111,6 +111,7 @@ export const LISTINGS: Listing[] = [
     reportCount: 0,
     flaggedKeywords: [],
     reviewNote: null,
+    stock: null,
   },
   {
     id: "l-2",
@@ -132,6 +133,7 @@ export const LISTINGS: Listing[] = [
     reportCount: 0,
     flaggedKeywords: [],
     reviewNote: null,
+    stock: null,
   },
   {
     id: "l-3",
@@ -153,6 +155,7 @@ export const LISTINGS: Listing[] = [
     reportCount: 0,
     flaggedKeywords: [],
     reviewNote: null,
+    stock: null,
   },
   {
     id: "l-4",
@@ -174,6 +177,7 @@ export const LISTINGS: Listing[] = [
     reportCount: 0,
     flaggedKeywords: [],
     reviewNote: null,
+    stock: null,
   },
   {
     id: "l-5",
@@ -195,6 +199,7 @@ export const LISTINGS: Listing[] = [
     reportCount: 0,
     flaggedKeywords: [],
     reviewNote: null,
+    stock: null,
   },
   {
     id: "l-6",
@@ -216,6 +221,7 @@ export const LISTINGS: Listing[] = [
     reportCount: 0,
     flaggedKeywords: [],
     reviewNote: null,
+    stock: null,
   },
   {
     id: "l-7",
@@ -237,6 +243,7 @@ export const LISTINGS: Listing[] = [
     reportCount: 0,
     flaggedKeywords: [],
     reviewNote: null,
+    stock: null,
   },
   {
     id: "l-8",
@@ -258,5 +265,6 @@ export const LISTINGS: Listing[] = [
     reportCount: 0,
     flaggedKeywords: [],
     reviewNote: null,
+    stock: null,
   },
 ];

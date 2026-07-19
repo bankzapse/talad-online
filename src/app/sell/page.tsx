@@ -19,6 +19,7 @@ export default async function SellHome({
     deleted?: string;
     submitted?: string;
     created?: string;
+    error?: string;
   }>;
 }) {
   const seller = await getCurrentSeller();
@@ -39,6 +40,16 @@ export default async function SellHome({
       {sp.verified === "1" && (
         <div className="mb-4 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
           ✓ ยืนยันเบอร์สำเร็จ! ร้านคุณได้ป้าย &ldquo;ยืนยันเบอร์แล้ว&rdquo;
+        </div>
+      )}
+      {sp.error === "reviewing" && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          ประกาศนี้กำลังรอทีมงานตรวจอยู่ — แก้ไขไม่ได้จนกว่าจะตรวจเสร็จ
+        </div>
+      )}
+      {sp.error === "state" && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          เปลี่ยนสถานะประกาศนี้ไม่ได้ — ลองรีเฟรชหน้าอีกครั้ง
         </div>
       )}
       {sp.created === "1" && (
@@ -166,6 +177,7 @@ export default async function SellHome({
                 </div>
                 <div className="text-xs text-slate-400">
                   {formatPrice(l.price, l.unit)} · 📍 {l.marketName || l.province}
+                  {l.stock !== null && ` · เหลือ ${l.stock}`}
                 </div>
                 {l.status === "draft" && l.reviewNote && (
                   <div className="mt-1 rounded bg-red-50 px-2 py-1 text-xs text-red-600">

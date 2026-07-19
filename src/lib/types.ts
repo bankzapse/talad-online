@@ -130,6 +130,7 @@ export interface Listing {
   reportCount: number;
   flaggedKeywords: string[]; // คำที่ติด blocklist → เข้าคิว admin
   reviewNote: string | null; // เหตุผลที่ทีมงานไม่อนุมัติ
+  stock: number | null; // null = ไม่จำกัด · ตัวเลข = เหลือเท่านี้ หมดแล้วปิดประกาศเอง
 }
 
 export interface MembershipPackage {

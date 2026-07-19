@@ -72,6 +72,7 @@ export function rowToListing(r: Record<string, unknown>): Listing {
     reportCount: Number(r.report_count ?? 0),
     flaggedKeywords: (r.flagged_keywords as string[]) ?? [],
     reviewNote: (r.review_note as string) ?? null,
+    stock: r.stock === null || r.stock === undefined ? null : Number(r.stock),
   };
 }
 

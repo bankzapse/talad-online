@@ -40,6 +40,8 @@ import {
   rejectListing,
   createOrder,
   hasOpenOrder,
+  consumeStock,
+  restoreStock,
   getOrder,
   updateOrder,
   getSeller,
@@ -128,6 +130,15 @@ function parseDelivery(raw: string): DeliveryMethod {
 function requiresVerified(m: DeliveryMethod): boolean {
   return m === "prepay" || m === "shipping";
 }
+
+// ช่องจำนวนคงเหลือ: เว้นว่าง = ไม่จำกัด
+function parseStock(raw: FormDataEntryValue | null): number | null {
+  const v = String(raw ?? "").trim();
+  if (!v) return null;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0 || n > 1_000_000) return null;
+  return Math.floor(n);
+}
 export async function createListingAction(_sellerId: string, formData: FormData) {
   const seller = await getCurrentSeller();
   if (!seller || seller.blocked) redirect("/login");
@@ -175,6 +186,7 @@ export async function createListingAction(_sellerId: string, formData: FormData)
     marketName,
     images,
     deliveryMethod,
+    stock: parseStock(formData.get("stock")),
   });
   redirect("/sell?created=1");
 }
@@ -338,8 +350,19 @@ export async function rejectPaymentAction(paymentId: string) {
 }
 export async function moderateAction(id: string, action: "approve" | "remove") {
   await requireAdmin();
+  const listing = await getListing(id);
   if (action === "approve") await approveListing(id);
   else await updateListingStatus(id, "hidden");
+
+  // แจ้งผู้ขายทาง LINE — เดิมผู้ขายต้องเข้ามาเช็คเองว่าอนุมัติหรือยัง
+  const seller = listing ? await getSeller(listing.sellerId) : undefined;
+  await pushToLineUser(
+    seller?.lineUserId,
+    action === "approve"
+      ? `✅ ประกาศ "${listing?.title ?? ""}" ผ่านการตรวจแล้ว — แสดงบนเว็บเรียบร้อย`
+      : `⛔ ประกาศ "${listing?.title ?? ""}" ถูกระงับโดยทีมงาน — ติดต่อทีมงานหากต้องการสอบถาม`,
+    seller?.displayName
+  );
   redirect("/admin/moderation");
 }
 
@@ -347,7 +370,15 @@ export async function moderateAction(id: string, action: "approve" | "remove") {
 export async function rejectListingAction(id: string, formData: FormData) {
   await requireAdmin();
   const note = String(formData.get("note") || "").trim().slice(0, 200);
+  const listing = await getListing(id);
   await rejectListing(id, note);
+
+  const seller = listing ? await getSeller(listing.sellerId) : undefined;
+  await pushToLineUser(
+    seller?.lineUserId,
+    `↩️ ประกาศ "${listing?.title ?? ""}" ยังไม่ผ่านการตรวจ${note ? `\nเหตุผล: ${note}` : ""}\nแก้ไขแล้วกดส่งขออนุมัติใหม่ได้ที่ร้านของฉัน`,
+    seller?.displayName
+  );
   redirect("/admin/moderation");
 }
 export async function adjustExpiryAction(sellerId: string, formData: FormData) {
@@ -433,6 +464,9 @@ export async function updateListingAction(id: string, formData: FormData) {
   const listing = await getListing(id);
   // ตรวจสิทธิ์เจ้าของก่อนเสมอ (กัน IDOR — แก้ประกาศคนอื่นไม่ได้)
   if (!listing || listing.sellerId !== seller!.id) redirect("/sell");
+  // ห้ามแก้ระหว่างทีมงานกำลังตรวจ — ไม่งั้นเนื้อหาเปลี่ยนใต้มือคนตรวจ
+  // แอดมินอาจกดอนุมัติของที่ไม่เคยเห็น
+  if (listing!.status === "pending_review") redirect("/sell?error=reviewing");
 
   const back = `/sell/edit/${id}`;
   let images: string[] = [];
@@ -470,6 +504,7 @@ export async function updateListingAction(id: string, formData: FormData) {
     marketName,
     images,
     deliveryMethod,
+    stock: parseStock(formData.get("stock")),
   });
   redirect("/sell?saved=1");
 }
@@ -505,6 +540,8 @@ export async function createOrderAction(listingId: string, formData: FormData) {
   if (shop!.lineUserId && shop!.lineUserId === buyerKey) redirect(`/listing/${listingId}`);
   // กันสั่งซ้ำรัว ๆ — มีออร์เดอร์ที่ยังรอร้านยืนยันของประกาศนี้อยู่แล้ว
   if (await hasOpenOrder(buyerKey!, listing!.id)) redirect("/orders?dup=1");
+  // ของหมดแล้วสั่งไม่ได้
+  if (listing!.stock !== null && listing!.stock <= 0) redirect(`/listing/${listingId}`);
 
   const back = `/listing/${listingId}/order`;
   const buyerName = String(formData.get("buyerName") || "").trim().slice(0, 80);
@@ -519,6 +556,7 @@ export async function createOrderAction(listingId: string, formData: FormData) {
   const shipping = needsShipping(listing!.deliveryMethod);
   if (shipping && address.length < 10) redirect(`${back}?error=address`);
   if (!Number.isFinite(qty) || qty < 1 || qty > 10_000) redirect(`${back}?error=qty`);
+  if (listing!.stock !== null && qty > listing!.stock) redirect(`${back}?error=stock`);
 
   const order = await createOrder({
     listingId: listing!.id,
@@ -576,6 +614,7 @@ export async function confirmOrderAction(orderId: string) {
     status: "confirmed",
     confirmedAt: new Date().toISOString(),
   });
+  await consumeStock(order.listingId, order.qty);
   await pushToLineUser(
     order.buyerKey,
     `✅ ร้าน ${seller.shopName ?? seller.displayName} ยืนยันรายการสั่งซื้อของคุณแล้ว\n${order.listingTitle} × ${order.qty}\nติดต่อร้าน: ${seller.contactPhone ?? "-"}`,
@@ -620,6 +659,8 @@ export async function completeOrderAction(orderId: string) {
 export async function cancelOrderAction(orderId: string, formData: FormData) {
   const { seller, order } = await ownedOrder(orderId, "cancelled");
   const reason = String(formData.get("reason") || "").trim().slice(0, 200);
+  // ถ้าเคยยืนยันไปแล้ว สต็อกถูกตัดไป — ยกเลิกต้องคืนของกลับเข้าสต็อก
+  if (order.status !== "pending") await restoreStock(order.listingId, order.qty);
   await updateOrder(orderId, { status: "cancelled", cancelReason: reason || null });
   await pushToLineUser(
     order.buyerKey,
@@ -639,6 +680,7 @@ export async function cancelOwnOrderAction(orderId: string, formData: FormData) 
   if (order!.status !== "pending" && order!.status !== "confirmed") redirect("/orders?error=state");
 
   const reason = String(formData.get("reason") || "").trim().slice(0, 200);
+  if (order!.status === "confirmed") await restoreStock(order!.listingId, order!.qty);
   await updateOrder(orderId, {
     status: "cancelled",
     cancelReason: reason ? `ผู้ซื้อยกเลิก: ${reason}` : "ผู้ซื้อยกเลิก",

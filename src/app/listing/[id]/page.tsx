@@ -76,6 +76,17 @@ export default async function ListingDetail({
             <span className="chip border-slate-200 bg-slate-50 text-slate-400">
               ลงเมื่อ {timeAgo(listing.createdAt)}
             </span>
+            {listing.stock !== null && (
+              <span
+                className={`chip ${
+                  listing.stock > 0
+                    ? "border-brand/25 bg-brand-soft text-brand-dark"
+                    : "border-red-200 bg-red-50 text-red-600"
+                }`}
+              >
+                {listing.stock > 0 ? `เหลือ ${listing.stock} ${listing.unit}` : "ของหมด"}
+              </span>
+            )}
           </div>
 
           <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
@@ -122,12 +133,18 @@ export default async function ListingDetail({
           })()}
 
           <div className="mt-3 space-y-2">
-            <Link
-              href={`/listing/${listing.id}/order`}
-              className="btn-primary w-full py-3 text-base"
-            >
-              🛒 สั่งซื้อสินค้านี้
-            </Link>
+            {listing.stock !== null && listing.stock <= 0 ? (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center text-sm text-slate-500">
+                สินค้าหมดแล้ว — ทักถามร้านได้ว่าจะมีของเข้าอีกเมื่อไหร่
+              </div>
+            ) : (
+              <Link
+                href={`/listing/${listing.id}/order`}
+                className="btn-primary w-full py-3 text-base"
+              >
+                🛒 สั่งซื้อสินค้านี้
+              </Link>
+            )}
             <ContactButton
               listingId={listing.id}
               buyerLoggedIn={buyerLoggedIn}

@@ -33,6 +33,8 @@ export default async function EditListing({
   const listing = await getListing(id);
   // เจ้าของเท่านั้น — ประกาศคนอื่นให้เป็น 404 (ไม่เผยว่ามีอยู่จริง)
   if (!listing || listing.sellerId !== seller!.id) notFound();
+  // รอตรวจอยู่ → แก้ไม่ได้ (กันเนื้อหาเปลี่ยนใต้มือคนตรวจ)
+  if (listing!.status === "pending_review") redirect("/sell?error=reviewing");
 
   const categories = await getCategories();
   const provinces = getProvinces();
@@ -118,6 +120,21 @@ export default async function EditListing({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="label">จำนวนคงเหลือ</label>
+            <input
+              name="stock"
+              type="number"
+              min="0"
+              defaultValue={listing!.stock ?? ""}
+              className="input"
+              placeholder="เว้นว่าง = ไม่จำกัด"
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              ใส่ตัวเลขถ้ามีจำนวนจำกัด — ขายหมดระบบปิดประกาศให้เอง · เว้นว่างถ้ามีของเรื่อย ๆ
+            </p>
           </div>
 
           <LocationPicker

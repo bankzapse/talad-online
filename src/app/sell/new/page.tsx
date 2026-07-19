@@ -100,6 +100,20 @@ export default async function NewListing({
             </select>
           </div>
 
+          <div>
+            <label className="label">จำนวนคงเหลือ</label>
+            <input
+              name="stock"
+              type="number"
+              min="0"
+              className="input"
+              placeholder="เว้นว่าง = ไม่จำกัด"
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              ใส่ตัวเลขถ้ามีจำนวนจำกัด — ขายหมดระบบปิดประกาศให้เอง · เว้นว่างถ้ามีของเรื่อย ๆ
+            </p>
+          </div>
+
           <LocationPicker provinces={provinces} />
 
           <div>

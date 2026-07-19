@@ -86,7 +86,12 @@ export default async function LoginPage({
               <SubmitButton className="btn-primary w-full py-3" pendingText="กำลังเข้า…">
                 <span className="text-lg">💚</span> เข้าสู่ระบบด้วย LINE
               </SubmitButton>
-              <p className="mt-3 text-xs text-slate-400">(โหมด demo — ตั้งค่า LINE Login เพื่อใช้จริง)</p>
+              <p className="mt-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-700">
+                ⚠️ โหมดทดลอง — คำสั่งซื้อจะผูกกับเบราว์เซอร์นี้เท่านั้น
+                ถ้าออกจากระบบหรือล้างคุกกี้จะดูประวัติไม่ได้ และจะไม่ได้รับแจ้งเตือนทาง LINE
+                <br />
+                (เมื่อเปิดใช้ LINE Login จริง ประวัติจะผูกกับบัญชี LINE ถาวร)
+              </p>
             </form>
           )}
         </div>

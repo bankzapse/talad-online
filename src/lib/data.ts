@@ -403,6 +403,7 @@ export interface NewListingInput {
   marketName: string;
   images?: string[];
   deliveryMethod?: Listing["deliveryMethod"];
+  stock?: number | null;
 }
 
 export async function createListing(input: NewListingInput): Promise<Listing> {
@@ -426,6 +427,7 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
       images: input.images ?? [],
       status,
       flagged_keywords: flag.matched,
+      stock: input.stock ?? null,
     };
     let res = await sb()
       .from("listings")
@@ -441,6 +443,15 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
       res = await sb()
         .from("listings")
         .insert({ ...base, status: "pending_review", delivery_method: deliveryMethod })
+        .select("*")
+        .single();
+    }
+    // เผื่อยังไม่ได้ migrate คอลัมน์ stock
+    if (res.error) {
+      const { stock: _s, ...noStock } = base;
+      res = await sb()
+        .from("listings")
+        .insert({ ...noStock, delivery_method: deliveryMethod })
         .select("*")
         .single();
     }
@@ -468,6 +479,7 @@ export async function createListing(input: NewListingInput): Promise<Listing> {
     reportCount: 0,
     flaggedKeywords: flag.matched,
     reviewNote: null,
+    stock: input.stock ?? null,
   };
   db.listings.unshift(listing);
   db.counters.listingsCreated += 1;
@@ -487,6 +499,7 @@ export interface EditListingInput {
   marketName: string;
   images: string[];
   deliveryMethod: Listing["deliveryMethod"];
+  stock: number | null;
 }
 
 export async function updateListing(id: string, input: EditListingInput): Promise<void> {
@@ -511,6 +524,7 @@ export async function updateListing(id: string, input: EditListingInput): Promis
       images: input.images,
       delivery_method: input.deliveryMethod,
       flagged_keywords: flag.matched,
+      stock: input.stock,
     };
     // แก้ประกาศที่อนุมัติแล้ว → กลับเข้าคิวตรวจใหม่ (ไม่งั้นแก้เป็นอะไรก็ได้หลังผ่านอนุมัติ)
     if (resubmit) {
@@ -520,7 +534,7 @@ export async function updateListing(id: string, input: EditListingInput): Promis
     const res = await sb().from("listings").update(patch).eq("id", id);
     if (res.error) {
       // เผื่อคอลัมน์ใหม่ยังไม่ถูก migrate → บันทึกส่วนที่เหลือ ไม่ให้ผู้ขายเห็น "บันทึกแล้ว" ทั้งที่ไม่ได้บันทึก
-      const { review_note: _n, delivery_method: _d, ...rest } = patch;
+      const { review_note: _n, delivery_method: _d, stock: _st, ...rest } = patch;
       await sb().from("listings").update(rest).eq("id", id);
     }
     return;
@@ -540,6 +554,7 @@ export async function updateListing(id: string, input: EditListingInput): Promis
     marketName: input.marketName,
     images: input.images,
     deliveryMethod: input.deliveryMethod,
+    stock: input.stock,
     flaggedKeywords: flag.matched,
     ...(resubmit ? { status: "pending_review" as const, reviewNote: null } : {}),
   });
@@ -1334,6 +1349,48 @@ export async function updateOrder(
   }
   const o = db.orders.find((x) => x.id === id);
   if (o) Object.assign(o, patch);
+}
+
+// ตัดสต็อกตอนร้าน "ยืนยัน" ออร์เดอร์ (ไม่ใช่ตอนสั่ง — ออร์เดอร์ที่ร้านยังไม่รับไม่ควรกินของ)
+// สต็อกหมด → ปิดประกาศเป็น "ขายแล้ว" อัตโนมัติ
+export async function consumeStock(listingId: string | null, qty: number): Promise<void> {
+  if (!listingId) return;
+  const l = await getListing(listingId);
+  if (!l || l.stock === null) return; // ไม่จำกัด
+
+  const left = Math.max(0, l.stock - qty);
+  if (isSupabaseReady()) {
+    const patch: Record<string, unknown> = { stock: left };
+    if (left === 0) patch.status = "sold";
+    const res = await sb().from("listings").update(patch).eq("id", listingId);
+    if (res.error && left === 0) await sb().from("listings").update({ status: "sold" }).eq("id", listingId);
+    return;
+  }
+  const d = db.listings.find((x) => x.id === listingId);
+  if (d) {
+    d.stock = left;
+    if (left === 0) d.status = "sold";
+  }
+}
+
+// คืนสต็อกเมื่อออร์เดอร์ที่เคยยืนยันแล้วถูกยกเลิก
+export async function restoreStock(listingId: string | null, qty: number): Promise<void> {
+  if (!listingId) return;
+  const l = await getListing(listingId);
+  if (!l || l.stock === null) return;
+
+  const back = l.stock + qty;
+  if (isSupabaseReady()) {
+    const patch: Record<string, unknown> = { stock: back };
+    if (l.status === "sold") patch.status = "active"; // เปิดขายอีกครั้ง
+    await sb().from("listings").update(patch).eq("id", listingId);
+    return;
+  }
+  const d = db.listings.find((x) => x.id === listingId);
+  if (d) {
+    d.stock = back;
+    if (d.status === "sold") d.status = "active";
+  }
 }
 
 export async function countPendingOrders(sellerId: string): Promise<number> {

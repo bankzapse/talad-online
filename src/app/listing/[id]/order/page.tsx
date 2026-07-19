@@ -14,6 +14,7 @@ const ERR: Record<string, string> = {
   phone: "เบอร์ติดต่อไม่ถูกต้อง (มือถือ 10 หลัก)",
   address: "กรุณากรอกที่อยู่จัดส่งให้ครบถ้วน",
   qty: "จำนวนไม่ถูกต้อง",
+  stock: "จำนวนที่สั่งเกินของที่ร้านมีอยู่",
   db: "สั่งซื้อไม่สำเร็จ ลองใหม่อีกครั้ง",
 };
 
@@ -72,6 +73,7 @@ export default async function OrderPage({
             </div>
             <div className="text-xs text-slate-400">
               ร้าน {seller.shopName ?? seller.displayName} · {dm?.short}
+              {listing.stock !== null && ` · เหลือ ${listing.stock} ${listing.unit}`}
             </div>
           </div>
         </div>
@@ -114,6 +116,7 @@ export default async function OrderPage({
                 name="qty"
                 type="number"
                 min="1"
+                max={listing.stock ?? undefined}
                 defaultValue={1}
                 required
                 className="input"
