@@ -56,9 +56,6 @@ export default async function AdminGate({
             เข้าสู่ระบบ
           </SubmitButton>
         </form>
-        <p className="mt-3 text-center text-[11px] text-slate-400">
-          เปลี่ยนรหัสได้ที่ admin → ตั้งค่าบัญชี (เก็บใน Supabase ไม่ต้อง redeploy)
-        </p>
       </div>
     </div>
   );
