@@ -89,6 +89,7 @@ export interface Seller {
   shopName: string | null; // ต้องกรอกก่อนลงประกาศ
   shopAbout: string | null;
   contactPhone: string | null; // เบอร์ติดต่อร้าน (บังคับ)
+  lineId: string | null; // LINE ID ที่ผู้ซื้อใช้ทัก (เช่น @taladshop) — ร้านกรอกเอง
   bankName: string | null;
   bankAccountNo: string | null;
   bankAccountName: string | null;

@@ -96,6 +96,21 @@ export default async function ShopProfile({
           </div>
 
           <div>
+            <label className="label">LINE ID ของร้าน</label>
+            <input
+              name="lineId"
+              maxLength={60}
+              defaultValue={seller.lineId ?? ""}
+              className="input"
+              placeholder="@taladshop หรือ ไอดีไลน์ของคุณ"
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              ผู้ซื้อจะเห็น ID นี้ไว้ทักหาคุณ — ระบบดึงจาก LINE ให้อัตโนมัติไม่ได้
+              (LINE ให้มาแค่รหัสภายในที่ค้นหาไม่ได้) กรอกเองจาก LINE &gt; ตั้งค่า &gt; โปรไฟล์
+            </p>
+          </div>
+
+          <div>
             <label className="label">เกี่ยวกับร้าน</label>
             <textarea
               name="shopAbout"

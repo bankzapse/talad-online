@@ -8,6 +8,7 @@ import SlipUpload from "@/components/SlipUpload";
 import SubmitButton from "@/components/SubmitButton";
 import PackagePicker from "@/components/PackagePicker";
 import { promptPayQrDataUrl } from "@/lib/promptpay";
+import { TRIAL_DAYS } from "@/lib/packages";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,7 @@ export default async function Membership({
       {!seller.trialUsed && (
         <form action={startTrialAction.bind(null, seller.id)} className="mt-4">
           <SubmitButton className="btn-primary w-full py-3" pendingText="กำลังเริ่ม…">
-            🎁 เริ่มทดลองฟรี 30 วัน (ไม่ต้องจ่าย)
+            🎁 เริ่มทดลองฟรี {TRIAL_DAYS} วัน (ไม่ต้องจ่าย)
           </SubmitButton>
         </form>
       )}

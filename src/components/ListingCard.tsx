@@ -7,11 +7,17 @@ export default function ListingCard({
   listing,
   emoji,
   sellerVerified,
+  companyVerified,
 }: {
   listing: Listing;
   emoji: string;
   sellerVerified: boolean;
+  companyVerified?: boolean;
 }) {
+  // ประกาศที่รับ "โอนก่อน" ได้ = ร้านผ่านการยืนยันตัวตนกับบริษัทแล้ว → ติดป้ายเชื่อถือได้
+  const trusted =
+    companyVerified &&
+    (listing.deliveryMethod === "prepay" || listing.deliveryMethod === "shipping");
   return (
     <Link
       href={`/listing/${listing.id}`}
@@ -31,10 +37,16 @@ export default function ListingCard({
         <span className="absolute left-2 top-2 chip border-white/60 bg-white/80 px-2 py-0.5 text-[11px] text-slate-600 backdrop-blur">
           {emoji}
         </span>
-        {sellerVerified && (
-          <span className="absolute right-2 top-2 chip border-brand/30 bg-brand text-[10px] text-white">
-            ✓ ยืนยันแล้ว
+        {trusted ? (
+          <span className="absolute right-2 top-2 chip border-gold/50 bg-gold text-[10px] font-medium text-white shadow-soft">
+            🛡️ เชื่อถือได้
           </span>
+        ) : (
+          sellerVerified && (
+            <span className="absolute right-2 top-2 chip border-brand/30 bg-brand text-[10px] text-white">
+              ✓ ยืนยันแล้ว
+            </span>
+          )
         )}
       </div>
       <div className="p-3">

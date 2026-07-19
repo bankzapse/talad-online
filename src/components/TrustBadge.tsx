@@ -11,6 +11,11 @@ export default function TrustBadge({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-xs">
+      {seller.companyVerified && (
+        <span className="chip border-gold/50 bg-gold-light font-medium text-[#7a5c1f]">
+          🛡️ ร้านเชื่อถือได้ — ยืนยันกับบริษัทแล้ว
+        </span>
+      )}
       {seller.phoneVerified && (
         <span className="chip border-brand/30 bg-brand-light text-brand-dark">
           ✓ ยืนยันเบอร์แล้ว

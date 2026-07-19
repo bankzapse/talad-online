@@ -13,6 +13,7 @@ import { checkBlocklist } from "./blocklist";
 import { getServiceClient, isSupabaseReady } from "./supabase/admin";
 import { rowToSeller, rowToListing, rowToPayment, rowToPackage, rowToOrder } from "./mappers";
 import { COMPANY } from "./company";
+import { TRIAL_DAYS } from "./packages";
 
 // ---------- ตั้งค่าบัญชีรับเงิน (admin แก้ได้) ----------
 export interface PaymentSettings {
@@ -257,6 +258,7 @@ export async function upsertSellerFromLine(
       shopName: null,
       shopAbout: null,
       contactPhone: null,
+      lineId: null,
       bankName: null,
       bankAccountNo: null,
       bankAccountName: null,
@@ -598,7 +600,7 @@ export async function tryContact(
 // ---------- membership ----------
 export async function startTrial(sellerId: string): Promise<void> {
   const exp = new Date();
-  exp.setDate(exp.getDate() + 30);
+  exp.setDate(exp.getDate() + TRIAL_DAYS);
   if (isSupabaseReady()) {
     const s = await getSeller(sellerId);
     if (s && !s.trialUsed) {
@@ -817,6 +819,7 @@ export interface ShopProfileInput {
   shopName: string;
   shopAbout: string;
   contactPhone: string;
+  lineId?: string;
   bankName?: string;
   bankAccountNo?: string;
   bankAccountName?: string;
@@ -833,6 +836,7 @@ export async function updateShopProfile(
     shop_name: p.shopName,
     shop_about: p.shopAbout,
     contact_phone: p.contactPhone,
+    line_id: p.lineId || null,
     bank_name: p.bankName ?? null,
     bank_account_no: p.bankAccountNo ?? null,
     bank_account_name: p.bankAccountName ?? null,
@@ -846,13 +850,18 @@ export async function updateShopProfile(
 
   if (isSupabaseReady()) {
     const { error } = await sb().from("sellers").update(patch).eq("id", sellerId);
-    return !error;
+    if (!error) return true;
+    // เผื่อยังไม่ได้ migrate line_id → บันทึกข้อมูลที่เหลือได้ ไม่ให้ฟอร์มพัง
+    const { line_id: _drop, ...rest } = patch;
+    const retry = await sb().from("sellers").update(rest).eq("id", sellerId);
+    return !retry.error;
   }
   const s = db.sellers.find((x) => x.id === sellerId);
   if (s) {
     s.shopName = p.shopName;
     s.shopAbout = p.shopAbout;
     s.contactPhone = p.contactPhone;
+    s.lineId = p.lineId || null;
     s.bankName = p.bankName ?? null;
     s.bankAccountNo = p.bankAccountNo ?? null;
     s.bankAccountName = p.bankAccountName ?? null;
@@ -901,6 +910,49 @@ export async function getPendingVerifications(): Promise<Seller[]> {
     return (data ?? []).map(rowToSeller);
   }
   return db.sellers.filter((s) => s.verifyStatus === "pending");
+}
+
+// ร้านที่ยืนยันแล้ว — บริษัทใช้ตรวจย้อนหลัง/ยกเลิกการยืนยันได้
+export async function getVerifiedShops(): Promise<Seller[]> {
+  if (isSupabaseReady()) {
+    const { data } = await sb().from("sellers").select("*").eq("company_verified", true);
+    return (data ?? []).map(rowToSeller);
+  }
+  return db.sellers.filter((s) => s.companyVerified);
+}
+
+// ยกเลิกการยืนยันร้าน → ใช้วิธีรับของแบบโอนก่อนไม่ได้อีก
+// ประกาศเดิมที่ตั้งเป็น prepay/shipping ไว้ ให้ย้ายกลับเป็น "นัดรับ" ทันที
+// (ไม่งั้นผู้ซื้อจะยังโอนเงินให้ร้านที่ถูกถอนสิทธิ์ได้)
+export async function revokeShopVerification(sellerId: string, reason: string): Promise<void> {
+  const seller = await getSeller(sellerId);
+  const patch = {
+    company_verified: false,
+    verify_status: "rejected",
+    verify_note: reason || "บริษัทยกเลิกการยืนยันร้าน",
+  };
+  if (isSupabaseReady()) {
+    await sb().from("sellers").update(patch).eq("id", sellerId);
+    await sb()
+      .from("listings")
+      .update({ delivery_method: "meetup" })
+      .eq("seller_id", sellerId)
+      .in("delivery_method", ["prepay", "shipping"]);
+  } else {
+    const s = db.sellers.find((x) => x.id === sellerId);
+    if (s) {
+      s.companyVerified = false;
+      s.verifyStatus = "rejected";
+      s.verifyNote = reason || "บริษัทยกเลิกการยืนยันร้าน";
+    }
+    db.listings
+      .filter((l) => l.sellerId === sellerId && ["prepay", "shipping"].includes(l.deliveryMethod))
+      .forEach((l) => (l.deliveryMethod = "meetup"));
+  }
+  await logAdmin(
+    "ยกเลิกการยืนยันร้าน",
+    `${seller?.shopName ?? seller?.displayName ?? sellerId}${reason ? ` — ${reason}` : ""}`
+  );
 }
 
 export async function setSellerCompanyVerified(sellerId: string, verified: boolean): Promise<void> {

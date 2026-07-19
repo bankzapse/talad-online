@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { COMPANY } from "@/lib/company";
+import { TRIAL_DAYS } from "@/lib/packages";
 
 export const metadata = {
   title: "ช่วยเหลือ & ติดต่อ",
@@ -37,7 +38,7 @@ export default function HelpPage() {
           <div className="card p-4">
             <div className="font-semibold text-ink">🏪 ผู้ขาย</div>
             <p className="mt-1 text-sm text-slate-500">
-              เข้าสู่ระบบ → ลงประกาศ (รูป/ราคา/วิธีรับของ) → ทดลองฟรี 30 วัน แล้วต่ออายุสมาชิก
+              เข้าสู่ระบบ → ลงประกาศ (รูป/ราคา/วิธีรับของ) → ทดลองฟรี {TRIAL_DAYS} วัน แล้วต่ออายุสมาชิก
             </p>
             <Link href="/login" className="mt-2 inline-block text-sm text-brand underline">
               เริ่มลงขาย →

@@ -31,6 +31,7 @@ import {
   setSellerCompanyVerified,
   updateShopProfile,
   reviewShopVerification,
+  revokeShopVerification,
   moveCategory,
   updateListing,
   deleteListing,
@@ -195,6 +196,7 @@ export async function saveShopProfileAction(formData: FormData) {
     shopName,
     shopAbout: g("shopAbout", 300),
     contactPhone,
+    lineId: g("lineId", 60),
     bankName: g("bankName", 60),
     bankAccountNo: g("bankAccountNo", 40),
     bankAccountName: g("bankAccountName", 80),
@@ -214,6 +216,13 @@ export async function reviewVerificationAction(
 ) {
   const note = formData ? String(formData.get("note") || "") : "";
   await reviewShopVerification(sellerId, approve, note);
+  redirect("/admin/verify");
+}
+
+// บริษัทยกเลิกการยืนยันร้าน — ร้านจะใช้วิธี "โอนก่อน" ไม่ได้อีก
+export async function revokeVerificationAction(sellerId: string, formData: FormData) {
+  const reason = String(formData.get("reason") || "").trim().slice(0, 200);
+  await revokeShopVerification(sellerId, reason);
   redirect("/admin/verify");
 }
 

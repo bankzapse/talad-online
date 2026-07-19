@@ -9,4 +9,4 @@ export const DEFAULT_PACKAGES: MembershipPackage[] = [
   { id: "pkg-1y", name: "รายปี", days: 365, price: 999, active: true },
 ];
 
-export const TRIAL_DAYS = 30;
+export const TRIAL_DAYS = 7;

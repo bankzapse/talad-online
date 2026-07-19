@@ -1,7 +1,7 @@
 import AdminNav from "@/components/AdminNav";
-import { getPendingVerifications } from "@/lib/data";
+import { getPendingVerifications, getVerifiedShops } from "@/lib/data";
 import { getServiceClient, isSupabaseReady } from "@/lib/supabase/admin";
-import { reviewVerificationAction } from "@/app/actions";
+import { reviewVerificationAction, revokeVerificationAction } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,10 @@ async function signDoc(path: string | null): Promise<string | null> {
 }
 
 export default async function AdminVerify() {
-  const pending = await getPendingVerifications();
+  const [pending, verified] = await Promise.all([
+    getPendingVerifications(),
+    getVerifiedShops(),
+  ]);
   const docs = new Map(
     await Promise.all(pending.map(async (s) => [s.id, await signDoc(s.bookBankUrl)] as const))
   );
@@ -77,6 +80,52 @@ export default async function AdminVerify() {
                     </form>
                   </div>
                 </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ---- ร้านที่ยืนยันแล้ว — ยกเลิกได้ ---- */}
+      <h2 className="mb-2 mt-8 text-lg font-bold">ร้านที่ยืนยันแล้ว ({verified.length})</h2>
+      <p className="mb-3 text-sm text-slate-500">
+        ยกเลิกการยืนยันแล้วร้านจะใช้ &ldquo;โอนเงินก่อนรับสินค้า&rdquo; และ &ldquo;ส่งพัสดุ โอนก่อนส่ง&rdquo;
+        ไม่ได้อีก — ประกาศเดิมที่ตั้งไว้แบบนั้นจะถูกเปลี่ยนเป็น &ldquo;นัดรับ&rdquo; ทันที
+      </p>
+
+      {verified.length === 0 ? (
+        <div className="card p-8 text-center text-slate-400">ยังไม่มีร้านที่ยืนยัน</div>
+      ) : (
+        <div className="space-y-2">
+          {verified.map((s) => {
+            const revoke = revokeVerificationAction.bind(null, s.id);
+            return (
+              <div key={s.id} className="card flex flex-wrap items-center justify-between gap-3 p-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-ink">
+                    {s.shopName ?? s.displayName}{" "}
+                    <span className="chip border-gold/40 bg-gold-light text-[10px] text-[#7a5c1f]">
+                      ✓ ยืนยันแล้ว
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    📞 {s.contactPhone ?? "—"}
+                    {s.companyName && ` · 🏢 ${s.companyName}`}
+                  </div>
+                </div>
+                <form action={revoke} className="flex shrink-0 gap-1">
+                  <input
+                    name="reason"
+                    placeholder="เหตุผลที่ยกเลิก"
+                    className="input w-40 py-1 text-xs"
+                  />
+                  <SubmitButton
+                    className="btn px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+                    pendingText="กำลังยกเลิก…"
+                  >
+                    ยกเลิกการยืนยัน
+                  </SubmitButton>
+                </form>
               </div>
             );
           })}

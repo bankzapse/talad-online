@@ -4,6 +4,7 @@ import ListingCard from "@/components/ListingCard";
 import CategorySidebar from "@/components/CategorySidebar";
 import { getCategories, getSellers, queryListings } from "@/lib/data";
 import { getProvinces } from "@/lib/geo";
+import { TRIAL_DAYS } from "@/lib/packages";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,7 @@ export default async function Home({
                     listing={l}
                     emoji={catMap.get(l.categoryId)?.emoji ?? "🛍️"}
                           sellerVerified={Boolean(sellerMap.get(l.sellerId)?.phoneVerified)}
+                          companyVerified={Boolean(sellerMap.get(l.sellerId)?.companyVerified)}
                   />
                 ))}
               </div>
@@ -145,7 +147,7 @@ export default async function Home({
       <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-brand-dark to-brand-darker p-8 text-white shadow-lift sm:p-12">
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-extrabold">เป็นแม่ค้าตลาด? ลงขายฟรี 30 วัน</h2>
+            <h2 className="text-2xl font-extrabold">เป็นแม่ค้าตลาด? ลงขายฟรี {TRIAL_DAYS} วัน</h2>
             <p className="mt-2 max-w-lg text-sm text-white/85">
               ลงประกาศผ่าน LINE ง่าย ๆ รับแจ้งเตือนเมื่อมีคนสนใจ ทดลองใช้ฟรีก่อน ไม่ต้องผูกบัตร
             </p>

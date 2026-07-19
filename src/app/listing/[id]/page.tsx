@@ -34,7 +34,9 @@ export default async function ListingDetail({
   if (!seller || !isSellerActive(seller)) notFound();
   const activeCount = await getSellerActiveCount(seller.id);
 
-  const lineContact = `@${seller.displayName.replace(/\s/g, "").slice(0, 10)}`;
+  // ช่องทางติดต่อจริงที่ร้านกรอกไว้ — ห้ามเดา ID เอง ผู้ซื้อจะทักไม่ติด
+  const lineContact =
+    seller.lineId || (seller.contactPhone ? `โทร ${seller.contactPhone}` : "ผ่านปุ่มติดต่อในเว็บ");
 
   return (
     <div>

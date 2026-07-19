@@ -39,6 +39,7 @@ export function rowToSeller(r: Record<string, unknown>): Seller {
     shopName: (r.shop_name as string) ?? null,
     shopAbout: (r.shop_about as string) ?? null,
     contactPhone: (r.contact_phone as string) ?? null,
+    lineId: (r.line_id as string) ?? null,
     bankName: (r.bank_name as string) ?? null,
     bankAccountNo: (r.bank_account_no as string) ?? null,
     bankAccountName: (r.bank_account_name as string) ?? null,

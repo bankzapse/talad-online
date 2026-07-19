@@ -5,6 +5,7 @@ import { getSellerListings, getCategories, countPendingOrders } from "@/lib/data
 import { formatPrice, daysLeft } from "@/lib/format";
 import { setListingStatusAction, logout } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
+import { TRIAL_DAYS } from "@/lib/packages";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,7 @@ export default async function SellHome({
               <span className="text-slate-500">
                 ยังไม่เริ่มทดลอง —{" "}
                 <Link href="/sell/membership" className="text-brand underline">
-                  เริ่มทดลองฟรี 30 วัน
+                  เริ่มทดลองฟรี {TRIAL_DAYS} วัน
                 </Link>
               </span>
             )}
