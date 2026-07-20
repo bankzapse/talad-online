@@ -27,6 +27,14 @@ export default async function Nav() {
           <Link href="/help" className="hidden rounded-full px-3 py-2 text-slate-600 hover:bg-white/70 sm:block">
             ช่วยเหลือ
           </Link>
+          {/* ลิงก์คำสั่งซื้อ — แสดงทุกครั้งที่ล็อกอินเป็นผู้ซื้อ แม้จะเป็นผู้ขายอยู่ด้วย
+              (ร้านค้าซื้อของร้านอื่นได้ ใช้คนละ cookie กัน) */}
+          {buyerIn && (
+            <Link href="/orders" className="rounded-full px-3 py-2 text-slate-600 hover:bg-white/70">
+              📦 คำสั่งซื้อ
+            </Link>
+          )}
+
           {seller ? (
             <>
               {dleft !== null && (
@@ -50,9 +58,6 @@ export default async function Nav() {
             </>
           ) : buyerIn ? (
             <>
-              <Link href="/orders" className="rounded-full px-3 py-2 text-slate-600 hover:bg-white/70">
-                📦 คำสั่งซื้อ
-              </Link>
               <Link href="/login" className="btn-outline">ลงขายกับเรา</Link>
               <form action={logoutBuyer}>
                 <button className="rounded-full px-3 py-2 text-slate-500 hover:bg-white/70 hover:text-slate-700">

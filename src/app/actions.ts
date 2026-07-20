@@ -50,7 +50,7 @@ import {
 import { isValidThaiMobile, normalizePhone, verifyOtp } from "@/lib/otp";
 import type { Unit, DeliveryMethod } from "@/lib/types";
 import { needsShipping } from "@/lib/types";
-import { pushToLineUser } from "@/lib/line";
+import { notify } from "@/lib/notify";
 import { safeNext } from "@/lib/url";
 import { isLineLoginConfigured } from "@/lib/line-login";
 import { verifySlipAmount } from "@/lib/slip";
@@ -369,7 +369,8 @@ export async function moderateAction(id: string, action: "approve" | "remove") {
 
   // แจ้งผู้ขายทาง LINE — เดิมผู้ขายต้องเข้ามาเช็คเองว่าอนุมัติหรือยัง
   const seller = listing ? await getSeller(listing.sellerId) : undefined;
-  await pushToLineUser(
+  await notify(
+    action === "approve" ? "listing_approved" : "listing_rejected",
     seller?.lineUserId,
     action === "approve"
       ? `✅ ประกาศ "${listing?.title ?? ""}" ผ่านการตรวจแล้ว — แสดงบนเว็บเรียบร้อย`
@@ -387,7 +388,8 @@ export async function rejectListingAction(id: string, formData: FormData) {
   await rejectListing(id, note);
 
   const seller = listing ? await getSeller(listing.sellerId) : undefined;
-  await pushToLineUser(
+  await notify(
+    "listing_rejected",
     seller?.lineUserId,
     `↩️ ประกาศ "${listing?.title ?? ""}" ยังไม่ผ่านการตรวจ${note ? `\nเหตุผล: ${note}` : ""}\nแก้ไขแล้วกดส่งขออนุมัติใหม่ได้ที่ร้านของฉัน`,
     seller?.displayName
@@ -588,7 +590,8 @@ export async function createOrderAction(listingId: string, formData: FormData) {
   if (!order) redirect(`${back}?error=db`);
 
   // แจ้งผู้ขายทาง LINE ว่ามีออร์เดอร์ใหม่
-  await pushToLineUser(
+  await notify(
+    "order_new",
     shop!.lineUserId,
     `🛒 มีรายการสั่งซื้อใหม่!\n${listing!.title} × ${qty}\nผู้ซื้อ: ${buyerName} (${buyerPhone})\nดูรายละเอียด: /sell/orders`,
     shop!.displayName
@@ -628,7 +631,8 @@ export async function confirmOrderAction(orderId: string) {
     confirmedAt: new Date().toISOString(),
   });
   await consumeStock(order.listingId, order.qty);
-  await pushToLineUser(
+  await notify(
+    "order_confirmed",
     order.buyerKey,
     `✅ ร้าน ${seller.shopName ?? seller.displayName} ยืนยันรายการสั่งซื้อของคุณแล้ว\n${order.listingTitle} × ${order.qty}\nติดต่อร้าน: ${seller.contactPhone ?? "-"}`,
     "ผู้ซื้อ"
@@ -653,7 +657,8 @@ export async function shipOrderAction(orderId: string, formData: FormData) {
     ...(order.status === "pending" ? { confirmedAt: new Date().toISOString() } : {}),
   });
 
-  await pushToLineUser(
+  await notify(
+    "order_shipped",
     order.buyerKey,
     trackingNo
       ? `📦 ร้าน ${seller.shopName ?? seller.displayName} จัดส่งสินค้าแล้ว\n${order.listingTitle}\nขนส่ง: ${carrier || "-"}\nเลขพัสดุ: ${trackingNo}`
@@ -675,7 +680,8 @@ export async function cancelOrderAction(orderId: string, formData: FormData) {
   // ถ้าเคยยืนยันไปแล้ว สต็อกถูกตัดไป — ยกเลิกต้องคืนของกลับเข้าสต็อก
   if (order.status !== "pending") await restoreStock(order.listingId, order.qty);
   await updateOrder(orderId, { status: "cancelled", cancelReason: reason || null });
-  await pushToLineUser(
+  await notify(
+    "order_cancelled",
     order.buyerKey,
     `❌ ร้าน ${seller.shopName ?? seller.displayName} ยกเลิกรายการสั่งซื้อ\n${order.listingTitle}${reason ? `\nเหตุผล: ${reason}` : ""}`,
     "ผู้ซื้อ"
@@ -700,7 +706,8 @@ export async function cancelOwnOrderAction(orderId: string, formData: FormData) 
   });
 
   const shop = await getSeller(order!.sellerId);
-  await pushToLineUser(
+  await notify(
+    "order_cancelled",
     shop?.lineUserId,
     `❌ ผู้ซื้อยกเลิกรายการสั่งซื้อ\n${order!.listingTitle} × ${order!.qty}${reason ? `\nเหตุผล: ${reason}` : ""}`,
     shop?.displayName
