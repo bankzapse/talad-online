@@ -88,7 +88,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
               <div className="max-w-sm">
                 <div className="flex items-center gap-2 text-lg font-extrabold text-brand-dark">
-                  <Logo size={26} /> ตลาดออนไลน์
+                  <Logo size={30} />
+                  <span className="flex flex-col leading-none">
+                    <span>Talad</span>
+                    <span className="mt-0.5 text-xs font-medium text-slate-500">ตลาดออนไลน์</span>
+                  </span>
                 </div>
                 <p className="mt-2 text-sm text-slate-500">
                   ตลาดออนไลน์เป็นเพียงตัวกลางประกาศ ไม่รับผิดชอบการซื้อขาย/คุณภาพสินค้า

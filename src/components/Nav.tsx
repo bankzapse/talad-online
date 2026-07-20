@@ -12,9 +12,12 @@ export default async function Nav() {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/60 glass">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-brand-dark">
-          <Logo size={32} />
-          <span>ตลาดออนไลน์</span>
+        <Link href="/" className="flex items-center gap-2.5 text-brand-dark">
+          <Logo size={36} />
+          <span className="flex flex-col leading-none">
+            <span className="text-lg font-extrabold tracking-tight">Talad</span>
+            <span className="mt-0.5 text-[11px] font-medium text-slate-500">ตลาดออนไลน์</span>
+          </span>
         </Link>
 
         <nav className="ml-auto flex items-center gap-1 text-sm">

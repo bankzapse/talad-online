@@ -13,6 +13,29 @@ export default function HelpPage() {
       <Link href="/" className="text-sm text-slate-400 hover:text-slate-600">← กลับหน้าแรก</Link>
       <h1 className="mt-3 text-2xl font-bold">ช่วยเหลือ &amp; ติดต่อ</h1>
 
+      {/* เพิ่มเพื่อน LINE OA — จำเป็นสำหรับรับแจ้งเตือน */}
+      <section className="mt-6 rounded-2xl border border-brand/30 bg-brand-soft p-5">
+        <h2 className="font-bold text-brand-dark">💚 เพิ่มเพื่อน LINE เพื่อรับแจ้งเตือน</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          ระบบส่งแจ้งเตือนผ่าน LINE — มีคนสั่งซื้อ ร้านยืนยันรายการ เลขพัสดุ และผลตรวจประกาศ
+          <br />
+          <b>LINE ห้ามส่งข้อความหาคนที่ยังไม่ได้เพิ่มเพื่อน</b> ถ้ายังไม่เพิ่ม จะไม่ได้รับแจ้งเตือนเลย
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <a
+            href="https://line.me/R/ti/p/@475sxbol"
+            target="_blank"
+            rel="noreferrer"
+            className="btn-primary"
+          >
+            เพิ่มเพื่อน LINE
+          </a>
+          <span className="text-sm text-slate-500">
+            หรือค้นหา LINE ID: <b className="text-brand-dark">@475sxbol</b>
+          </span>
+        </div>
+      </section>
+
       {/* ความปลอดภัย */}
       <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
         <h2 className="font-bold text-amber-800">🛡️ ซื้อขายอย่างปลอดภัย</h2>
