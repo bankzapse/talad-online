@@ -7,6 +7,19 @@ export function formatPrice(price: number, unit: Unit): string {
   return `${n} ฿ / ${unit}`;
 }
 
+// หน่วยสำหรับ "นับจำนวน" — ต่างจากหน่วยราคา
+// unit ของสินค้าชั่งกิโลคือ "บาท/กก." ซึ่งเป็นหน่วยราคา เอามาต่อท้ายจำนวนตรง ๆ
+// จะได้ "เหลือ 2 บาท/กก." ที่อ่านไม่รู้เรื่อง — ต้องตัดส่วนราคาออกเหลือแค่ "กก."
+export function countUnit(unit: Unit | string): string {
+  const u = String(unit);
+  const i = u.indexOf("/");
+  return i >= 0 ? u.slice(i + 1) : u;
+}
+
+export function formatStock(stock: number, unit: Unit | string): string {
+  return `เหลือ ${new Intl.NumberFormat("th-TH").format(stock)} ${countUnit(unit)}`;
+}
+
 export function formatBaht(n: number): string {
   return new Intl.NumberFormat("th-TH", {
     style: "currency",

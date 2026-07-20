@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentSeller } from "@/lib/auth";
 import { getSellerListings, getCategories, countPendingOrders } from "@/lib/data";
-import { formatPrice, daysLeft } from "@/lib/format";
+import { formatPrice, formatStock, daysLeft } from "@/lib/format";
 import { LISTING_STATUS } from "@/lib/types";
 import { setListingStatusAction, submitListingAction, logout } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
@@ -177,7 +177,7 @@ export default async function SellHome({
                 </div>
                 <div className="text-xs text-slate-400">
                   {formatPrice(l.price, l.unit)} · 📍 {l.marketName || l.province}
-                  {l.stock !== null && ` · เหลือ ${l.stock}`}
+                  {l.stock !== null && ` · ${formatStock(l.stock, l.unit)}`}
                 </div>
                 {l.status === "draft" && l.reviewNote && (
                   <div className="mt-1 rounded bg-red-50 px-2 py-1 text-xs text-red-600">

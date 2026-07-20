@@ -7,7 +7,7 @@ import {
   getSellerActiveCount,
   isSellerActive,
 } from "@/lib/data";
-import { formatPrice, timeAgo } from "@/lib/format";
+import { formatPrice, formatStock, timeAgo } from "@/lib/format";
 import { isBuyerLoggedIn, getCurrentSeller } from "@/lib/auth";
 import TrustBadge from "@/components/TrustBadge";
 import ContactButton from "@/components/ContactButton";
@@ -84,7 +84,7 @@ export default async function ListingDetail({
                     : "border-red-200 bg-red-50 text-red-600"
                 }`}
               >
-                {listing.stock > 0 ? `เหลือ ${listing.stock} ${listing.unit}` : "ของหมด"}
+                {listing.stock > 0 ? formatStock(listing.stock, listing.unit) : "ของหมด"}
               </span>
             )}
           </div>

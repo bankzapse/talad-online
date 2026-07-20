@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getListing, getSeller, isSellerActive, getLastBuyerInfo } from "@/lib/data";
 import { getBuyerKey } from "@/lib/auth";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatStock } from "@/lib/format";
 import { createOrderAction } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 import { DELIVERY_METHODS, needsShipping } from "@/lib/types";
@@ -73,7 +73,7 @@ export default async function OrderPage({
             </div>
             <div className="text-xs text-slate-400">
               ร้าน {seller.shopName ?? seller.displayName} · {dm?.short}
-              {listing.stock !== null && ` · เหลือ ${listing.stock} ${listing.unit}`}
+              {listing.stock !== null && ` · ${formatStock(listing.stock, listing.unit)}`}
             </div>
           </div>
         </div>
