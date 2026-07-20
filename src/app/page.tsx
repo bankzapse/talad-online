@@ -2,7 +2,8 @@ import Link from "next/link";
 import Filters from "@/components/Filters";
 import ListingCard from "@/components/ListingCard";
 import CategorySidebar from "@/components/CategorySidebar";
-import { getCategories, getSellers, queryListings } from "@/lib/data";
+import { getCategories, getSellers, queryListings, countListings, PAGE_SIZE } from "@/lib/data";
+import LoadMoreListings from "@/components/LoadMoreListings";
 import { getProvinces } from "@/lib/geo";
 import { TRIAL_DAYS } from "@/lib/packages";
 
@@ -17,15 +18,18 @@ export default async function Home({
   searchParams: Promise<{ [k: string]: string | undefined }>;
 }) {
   const sp = await searchParams;
-  const [categories, sellers, listings] = await Promise.all([
+  const baseQuery = {
+    categoryId: sp.category || undefined,
+    province: sp.province || undefined,
+    q: sp.q || undefined,
+    sort: (sp.sort as "newest" | "price_asc" | "price_desc") || "newest",
+  };
+  // โหลดหน้าแรกจาก server แล้วที่เหลือค่อยกด "โหลดเพิ่ม" (ไม่ดึงทั้งหมดมาทีเดียว)
+  const [categories, sellers, listings, total] = await Promise.all([
     getCategories(),
     getSellers(),
-    queryListings({
-      categoryId: sp.category || undefined,
-      province: sp.province || undefined,
-      q: sp.q || undefined,
-      sort: (sp.sort as "newest" | "price_asc" | "price_desc") || "newest",
-    }),
+    queryListings({ ...baseQuery, limit: PAGE_SIZE }),
+    countListings(baseQuery),
   ]);
 
   const catMap = new Map(categories.map((c) => [c.id, c]));
@@ -103,11 +107,11 @@ export default async function Home({
               <h2 className="section-title">
                 {filtering
                   ? catMap.get(sp.category ?? "")?.name
-                    ? `${catMap.get(sp.category!)!.emoji} ${catMap.get(sp.category!)!.name}`
+                    ? catMap.get(sp.category!)!.name
                     : "ผลการค้นหา"
                   : "ประกาศล่าสุด"}
               </h2>
-              <span className="text-sm text-slate-500">{listings.length} รายการ</span>
+              <span className="text-sm text-slate-500">{total} รายการ</span>
             </div>
 
             {listings.length === 0 ? (
@@ -123,11 +127,24 @@ export default async function Home({
                     key={l.id}
                     listing={l}
                     emoji={catMap.get(l.categoryId)?.emoji ?? "🛍️"}
-                          sellerVerified={Boolean(sellerMap.get(l.sellerId)?.phoneVerified)}
-                          companyVerified={Boolean(sellerMap.get(l.sellerId)?.companyVerified)}
+                    categoryName={catMap.get(l.categoryId)?.name}
+                    sellerVerified={Boolean(sellerMap.get(l.sellerId)?.phoneVerified)}
+                    companyVerified={Boolean(sellerMap.get(l.sellerId)?.companyVerified)}
                   />
                 ))}
               </div>
+            )}
+
+            {total > PAGE_SIZE && (
+              <LoadMoreListings
+                query={{
+                  q: sp.q,
+                  category: sp.category,
+                  province: sp.province,
+                  sort: sp.sort,
+                }}
+                startOffset={listings.length}
+              />
             )}
           </div>
         </div>

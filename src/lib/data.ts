@@ -288,6 +288,8 @@ export async function getPackages(activeOnly = false): Promise<MembershipPackage
 }
 
 // ---------- listings ----------
+export const PAGE_SIZE = 24;
+
 export interface ListingQuery {
   categoryId?: string;
   province?: string;
@@ -295,6 +297,8 @@ export interface ListingQuery {
   sort?: "newest" | "price_asc" | "price_desc";
   includeHidden?: boolean;
   status?: Listing["status"];
+  limit?: number;
+  offset?: number;
 }
 
 export async function queryListings(opts: ListingQuery = {}): Promise<Listing[]> {
@@ -316,6 +320,10 @@ export async function queryListings(opts: ListingQuery = {}): Promise<Listing[]>
     if (opts.sort === "price_asc") q = q.order("price", { ascending: true });
     else if (opts.sort === "price_desc") q = q.order("price", { ascending: false });
     else q = q.order("created_at", { ascending: false });
+    if (opts.limit !== undefined) {
+      const from = opts.offset ?? 0;
+      q = q.range(from, from + opts.limit - 1);
+    }
     const { data } = await q;
     const rows = (data ?? []) as unknown as Record<string, unknown>[];
     return rows.map(rowToListing);
@@ -347,10 +355,41 @@ export async function queryListings(opts: ListingQuery = {}): Promise<Listing[]>
   if (opts.sort === "price_asc") rows.sort((a, b) => a.price - b.price);
   else if (opts.sort === "price_desc") rows.sort((a, b) => b.price - a.price);
   else rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  if (opts.limit !== undefined) {
+    const from = opts.offset ?? 0;
+    return rows.slice(from, from + opts.limit);
+  }
   return rows;
 }
 
 // เช็คว่าผู้ขายยังแสดงประกาศได้ไหม (สมาชิก active + ไม่ถูกแบน)
+// สินค้าที่เกี่ยวข้อง — หมวดเดียวกันก่อน ถ้ายังไม่พอเติมด้วยจังหวัดเดียวกัน
+// เรียงให้ร้านเดียวกัน/จังหวัดเดียวกันขึ้นก่อน (ผู้ซื้อนัดรับสะดวกกว่า)
+export async function getRelatedListings(
+  listing: Listing,
+  limit = 6
+): Promise<Listing[]> {
+  const sameCat = await queryListings({ categoryId: listing.categoryId });
+  const picked = sameCat.filter((l) => l.id !== listing.id);
+
+  if (picked.length < limit) {
+    const sameProvince = await queryListings({ province: listing.province });
+    for (const l of sameProvince) {
+      if (l.id !== listing.id && !picked.some((p) => p.id === l.id)) picked.push(l);
+    }
+  }
+
+  const score = (l: Listing) =>
+    (l.sellerId === listing.sellerId ? 2 : 0) + (l.province === listing.province ? 1 : 0);
+  return picked.sort((a, b) => score(b) - score(a)).slice(0, limit);
+}
+
+// จำนวนประกาศทั้งหมดที่ตรงเงื่อนไข — ใช้บอกว่ายังมีให้โหลดอีกไหม
+export async function countListings(opts: ListingQuery = {}): Promise<number> {
+  const all = await queryListings({ ...opts, limit: undefined, offset: undefined });
+  return all.length;
+}
+
 export function isSellerActive(seller: Seller | undefined): boolean {
   return Boolean(
     seller &&

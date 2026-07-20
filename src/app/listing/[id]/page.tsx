@@ -6,12 +6,16 @@ import {
   getSeller,
   getSellerActiveCount,
   isSellerActive,
+  getRelatedListings,
+  getCategories,
+  getSellers,
 } from "@/lib/data";
 import { formatPrice, formatStock, timeAgo } from "@/lib/format";
 import { isBuyerLoggedIn, getCurrentSeller } from "@/lib/auth";
 import TrustBadge from "@/components/TrustBadge";
 import ContactButton from "@/components/ContactButton";
 import ReportButton from "@/components/ReportButton";
+import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +42,15 @@ export default async function ListingDetail({
   // ซ่อนถ้าผู้ขายสมาชิกหมด/ถูกแบน (ประกาศไม่แสดงต่อผู้ซื้อ)
   if (!seller || !isSellerActive(seller)) notFound();
   const activeCount = await getSellerActiveCount(seller.id);
+
+  // สินค้าที่เกี่ยวข้อง — หมวดเดียวกัน/พื้นที่ใกล้กัน
+  const [related, allCats, allSellers] = await Promise.all([
+    getRelatedListings(listing, 6),
+    getCategories(),
+    getSellers(),
+  ]);
+  const relCat = new Map(allCats.map((c) => [c.id, c]));
+  const relSeller = new Map(allSellers.map((s) => [s.id, s]));
 
   // ช่องทางติดต่อจริงที่ร้านกรอกไว้ — ห้ามเดา ID เอง ผู้ซื้อจะทักไม่ติด
   const lineContact =
@@ -164,6 +177,33 @@ export default async function ListingDetail({
             )}
         </div>
       </div>
+
+      {/* ---------- สินค้าที่เกี่ยวข้อง ---------- */}
+      {related.length > 0 && (
+        <section className="mt-10">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 className="section-title">สินค้าที่เกี่ยวข้อง</h2>
+            <Link
+              href={`/?category=${listing.categoryId}#listings`}
+              className="text-sm text-brand-dark hover:underline"
+            >
+              ดูทั้งหมดในหมวดนี้ →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+            {related.map((r) => (
+              <ListingCard
+                key={r.id}
+                listing={r}
+                emoji={relCat.get(r.categoryId)?.emoji ?? "🛍️"}
+                categoryName={relCat.get(r.categoryId)?.name}
+                sellerVerified={Boolean(relSeller.get(r.sellerId)?.phoneVerified)}
+                companyVerified={Boolean(relSeller.get(r.sellerId)?.companyVerified)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

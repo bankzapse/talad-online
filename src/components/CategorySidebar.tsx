@@ -20,7 +20,7 @@ export default function CategorySidebar({
   }) => (
     <Link
       href={href}
-      className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition ${
+      className={`block rounded-xl px-3 py-2.5 text-sm transition ${
         active
           ? "bg-brand-soft font-semibold text-brand-dark"
           : "text-slate-600 hover:bg-slate-50 hover:text-brand-dark"
@@ -35,11 +35,11 @@ export default function CategorySidebar({
       <div className="px-2 pb-2 text-sm font-bold text-ink">เลือกประเภทสินค้า</div>
       <nav className="space-y-0.5">
         <Item href="/#listings" active={!activeId}>
-          <span className="text-lg">🧺</span> ทั้งหมด
+          ทั้งหมด
         </Item>
         {categories.map((c) => (
           <Item key={c.id} href={`/?category=${c.id}#listings`} active={activeId === c.id}>
-            <span className="text-lg">{c.emoji}</span> {c.name}
+            {c.name}
           </Item>
         ))}
       </nav>

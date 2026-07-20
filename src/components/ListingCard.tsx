@@ -6,11 +6,13 @@ import { formatPrice, timeAgo } from "@/lib/format";
 export default function ListingCard({
   listing,
   emoji,
+  categoryName,
   sellerVerified,
   companyVerified,
 }: {
   listing: Listing;
   emoji: string;
+  categoryName?: string;
   sellerVerified: boolean;
   companyVerified?: boolean;
 }) {
@@ -34,9 +36,11 @@ export default function ListingCard({
         ) : (
           <span className="text-5xl opacity-80 transition group-hover:scale-110">{emoji}</span>
         )}
-        <span className="absolute left-2 top-2 chip border-white/60 bg-white/80 px-2 py-0.5 text-[11px] text-slate-600 backdrop-blur">
-          {emoji}
-        </span>
+        {categoryName && (
+          <span className="absolute left-2 top-2 chip border-white/60 bg-white/85 px-2 py-0.5 text-[11px] font-medium text-slate-600 backdrop-blur">
+            {categoryName}
+          </span>
+        )}
         {trusted ? (
           <span className="absolute right-2 top-2 chip border-gold/50 bg-gold text-[10px] font-medium text-white shadow-soft">
             🛡️ เชื่อถือได้
