@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
 import { getCategories } from "@/lib/data";
-import { getProvinces } from "@/lib/geo";
+import { getProvinces, findGeoIds } from "@/lib/geo";
 import { UNITS, DELIVERY_METHODS } from "@/lib/types";
 import { createListingAction } from "@/app/actions";
 import ImageUpload from "@/components/ImageUpload";
@@ -24,6 +24,11 @@ export default async function NewListing({
 
   const categories = await getCategories();
   const provinces = getProvinces();
+  // ที่ตั้งร้านที่ตั้งไว้ในข้อมูลร้าน → เติมให้อัตโนมัติ ไม่ต้องเลือกใหม่ทุกครั้ง
+  const shopGeo =
+    seller.province && seller.district && seller.subdistrict
+      ? findGeoIds(seller.province, seller.district, seller.subdistrict)
+      : null;
   const action = createListingAction.bind(null, seller.id);
 
   return (
@@ -114,7 +119,19 @@ export default async function NewListing({
             </p>
           </div>
 
-          <LocationPicker provinces={provinces} />
+          <div>
+            {shopGeo && (
+              <p className="mb-2 rounded-lg border border-brand/25 bg-brand-soft px-3 py-2 text-xs text-brand-dark">
+                📍 เติมที่ตั้งจากข้อมูลร้านให้แล้ว — แก้ได้ถ้าประกาศนี้อยู่คนละที่
+              </p>
+            )}
+            <LocationPicker
+              provinces={provinces}
+              initial={
+                shopGeo ? { ...shopGeo, marketName: seller.marketName ?? "" } : undefined
+              }
+            />
+          </div>
 
           <div>
             <label className="label">วิธีรับของ *</label>

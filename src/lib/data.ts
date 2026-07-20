@@ -259,6 +259,10 @@ export async function upsertSellerFromLine(
       shopAbout: null,
       contactPhone: null,
       lineId: null,
+      province: null,
+      district: null,
+      subdistrict: null,
+      marketName: null,
       bankName: null,
       bankAccountNo: null,
       bankAccountName: null,
@@ -946,6 +950,10 @@ export interface ShopProfileInput {
   shopAbout: string;
   contactPhone: string;
   lineId?: string;
+  province?: string;
+  district?: string;
+  subdistrict?: string;
+  marketName?: string;
   bankName?: string;
   bankAccountNo?: string;
   bankAccountName?: string;
@@ -963,6 +971,10 @@ export async function updateShopProfile(
     shop_about: p.shopAbout,
     contact_phone: p.contactPhone,
     line_id: p.lineId || null,
+    province: p.province || null,
+    district: p.district || null,
+    subdistrict: p.subdistrict || null,
+    market_name: p.marketName || null,
     bank_name: p.bankName ?? null,
     bank_account_no: p.bankAccountNo ?? null,
     bank_account_name: p.bankAccountName ?? null,
@@ -978,7 +990,14 @@ export async function updateShopProfile(
     const { error } = await sb().from("sellers").update(patch).eq("id", sellerId);
     if (!error) return true;
     // เผื่อยังไม่ได้ migrate line_id → บันทึกข้อมูลที่เหลือได้ ไม่ให้ฟอร์มพัง
-    const { line_id: _drop, ...rest } = patch;
+    const {
+      line_id: _drop,
+      province: _p,
+      district: _d,
+      subdistrict: _sd,
+      market_name: _m,
+      ...rest
+    } = patch;
     const retry = await sb().from("sellers").update(rest).eq("id", sellerId);
     return !retry.error;
   }
@@ -988,6 +1007,10 @@ export async function updateShopProfile(
     s.shopAbout = p.shopAbout;
     s.contactPhone = p.contactPhone;
     s.lineId = p.lineId || null;
+    s.province = p.province || null;
+    s.district = p.district || null;
+    s.subdistrict = p.subdistrict || null;
+    s.marketName = p.marketName || null;
     s.bankName = p.bankName ?? null;
     s.bankAccountNo = p.bankAccountNo ?? null;
     s.bankAccountName = p.bankAccountName ?? null;

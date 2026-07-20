@@ -236,14 +236,26 @@ export async function saveShopProfileAction(formData: FormData) {
   const contactPhone = normalizePhone(g("contactPhone", 20));
   const next = safeNext(g("next", 200), "/sell");
 
+  // ที่ตั้งร้าน — ตั้งครั้งเดียว ประกาศใหม่ดึงไปใช้
+  const provinceId = Number(formData.get("provinceId") || 0);
+  const districtId = Number(formData.get("districtId") || 0);
+  const subdistrictId = Number(formData.get("subdistrictId") || 0);
+  const marketName = g("marketName", 80);
+
   if (shopName.length < 2) redirect("/sell/profile?error=name");
   if (!isValidThaiMobile(contactPhone)) redirect("/sell/profile?error=phone");
+  if (!isValidGeo(provinceId, districtId, subdistrictId)) redirect("/sell/profile?error=area");
+  if (!marketName) redirect("/sell/profile?error=market");
 
   const ok = await updateShopProfile(seller!.id, {
     shopName,
     shopAbout: g("shopAbout", 300),
     contactPhone,
     lineId: g("lineId", 60),
+    province: provinceName(provinceId)!,
+    district: districtName(districtId)!,
+    subdistrict: subdistrictName(subdistrictId)!,
+    marketName,
     bankName: g("bankName", 60),
     bankAccountNo: g("bankAccountNo", 40),
     bankAccountName: g("bankAccountName", 80),

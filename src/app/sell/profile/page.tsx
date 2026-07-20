@@ -6,12 +6,16 @@ import SubmitButton from "@/components/SubmitButton";
 import DocUpload from "@/components/DocUpload";
 import { safeNext } from "@/lib/url";
 import { VERIFY_LABEL } from "@/lib/types";
+import LocationPicker from "@/components/LocationPicker";
+import { getProvinces, findGeoIds } from "@/lib/geo";
 
 export const dynamic = "force-dynamic";
 
 const ERR: Record<string, string> = {
   name: "กรุณากรอกชื่อร้าน (อย่างน้อย 2 ตัวอักษร)",
   phone: "กรุณากรอกเบอร์ติดต่อให้ถูกต้อง (มือถือ 10 หลัก)",
+  area: "กรุณาเลือก จังหวัด / อำเภอ / ตำบล ของร้านให้ครบ",
+  market: "กรุณากรอกชื่อตลาด / จุดนัดรับของร้าน",
   db: "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง",
 };
 
@@ -25,6 +29,12 @@ export default async function ShopProfile({
   const sp = await searchParams;
   const next = safeNext(sp.next, "/sell");
   const isFirstTime = !seller.shopName;
+  const provinces = getProvinces();
+  // เติมที่ตั้งเดิมของร้านให้ dropdown (ถ้าเคยตั้งไว้)
+  const shopGeo =
+    seller.province && seller.district && seller.subdistrict
+      ? findGeoIds(seller.province, seller.district, seller.subdistrict)
+      : null;
   const vs = VERIFY_LABEL[seller.verifyStatus];
 
   return (
@@ -119,6 +129,21 @@ export default async function ShopProfile({
               defaultValue={seller.shopAbout ?? ""}
               className="input"
               placeholder="เช่น ขายผักปลอดสารจากสวนตัวเอง เปิด 6 โมง–เที่ยง"
+            />
+          </div>
+
+          {/* ---- ที่ตั้งร้าน: ตั้งครั้งเดียว ประกาศดึงไปใช้ ---- */}
+          <div className="rounded-xl border border-brand/25 bg-brand-soft/50 p-4">
+            <div className="text-sm font-semibold text-ink">📍 ที่ตั้งร้าน / จุดนัดรับ</div>
+            <p className="mt-1 mb-3 text-xs text-slate-500">
+              ตั้งที่นี่ครั้งเดียว — ตอนลงประกาศระบบจะเติมให้อัตโนมัติ ไม่ต้องเลือกใหม่ทุกครั้ง
+              (ถ้าประกาศไหนอยู่คนละที่ ค่อยแก้เฉพาะประกาศนั้นได้)
+            </p>
+            <LocationPicker
+              provinces={provinces}
+              initial={
+                shopGeo ? { ...shopGeo, marketName: seller.marketName ?? "" } : undefined
+              }
             />
           </div>
 

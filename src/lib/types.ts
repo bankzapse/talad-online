@@ -100,6 +100,11 @@ export interface Seller {
   shopAbout: string | null;
   contactPhone: string | null; // เบอร์ติดต่อร้าน (บังคับ)
   lineId: string | null; // LINE ID ที่ผู้ซื้อใช้ทัก (เช่น @taladshop) — ร้านกรอกเอง
+  // ที่ตั้งร้าน — ตั้งครั้งเดียว ประกาศใหม่ดึงไปใช้เป็นค่าเริ่มต้น
+  province: string | null;
+  district: string | null;
+  subdistrict: string | null;
+  marketName: string | null;
   bankName: string | null;
   bankAccountNo: string | null;
   bankAccountName: string | null;
