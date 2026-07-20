@@ -17,6 +17,10 @@ export function buildAuthUrl(redirectUri: string, state: string): string {
     redirect_uri: redirectUri,
     state,
     scope: "profile openid",
+    // ให้หน้ายินยอมของ LINE มีช่อง "เพิ่มเพื่อน" OA ติ๊กมาให้เลย
+    // ไม่งั้นผู้ใช้ต้องไปเพิ่มเพื่อนเองทีหลัง แล้วจะไม่ได้รับแจ้งเตือนโดยไม่รู้ตัว
+    // ทำงานเมื่อผูก Login channel กับ LINE OA ไว้ในคอนโซลแล้ว (ไม่ผูกก็ไม่พัง แค่ถูกเมิน)
+    bot_prompt: "aggressive",
   });
   return `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
 }

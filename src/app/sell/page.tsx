@@ -81,6 +81,22 @@ export default async function SellHome({
           </Link>
         </div>
       )}
+      {/* แจ้งเตือน LINE — ถ้าไม่เพิ่มเพื่อน OA จะไม่ได้รับออร์เดอร์ใหม่โดยไม่รู้ตัว */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand/25 bg-brand-soft p-3 text-sm text-brand-dark">
+        <span>
+          💚 รับแจ้งเตือนออร์เดอร์ใหม่ทาง LINE — ต้องเพิ่มเพื่อน{" "}
+          <b>@475sxbol</b> ก่อน ไม่งั้นจะไม่ได้รับข้อความ
+        </span>
+        <a
+          href="https://line.me/R/ti/p/@475sxbol"
+          target="_blank"
+          rel="noreferrer"
+          className="btn-primary px-3 py-1.5 text-xs"
+        >
+          เพิ่มเพื่อน
+        </a>
+      </div>
+
       {!seller.phoneVerified && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
           <span>📱 ยืนยันเบอร์โทรเพื่อรับป้ายน่าเชื่อถือ + กันสวมรอย</span>
