@@ -52,3 +52,58 @@ export async function pushToLineUser(
     return "error";
   }
 }
+
+// -----------------------------------------------------------------------------
+// เครื่องมือตรวจสถานะ LINE — ใช้ในหน้า admin และ health check
+// -----------------------------------------------------------------------------
+export interface LineStatus {
+  configured: boolean;
+  tokenValid: boolean;
+  oaName?: string;
+  basicId?: string;
+  quotaTotal?: number;
+  quotaUsed?: number;
+}
+
+export async function getLineStatus(): Promise<LineStatus> {
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  if (!token) return { configured: false, tokenValid: false };
+
+  const h = { Authorization: `Bearer ${token}` };
+  try {
+    const info = await fetch("https://api.line.me/v2/bot/info", { headers: h });
+    if (!info.ok) return { configured: true, tokenValid: false };
+    const bot = await info.json();
+
+    const [q, c] = await Promise.all([
+      fetch("https://api.line.me/v2/bot/message/quota", { headers: h }).then((r) => r.json()).catch(() => null),
+      fetch("https://api.line.me/v2/bot/message/quota/consumption", { headers: h }).then((r) => r.json()).catch(() => null),
+    ]);
+
+    return {
+      configured: true,
+      tokenValid: true,
+      oaName: bot.displayName,
+      basicId: bot.basicId,
+      quotaTotal: q?.value,
+      quotaUsed: c?.totalUsage,
+    };
+  } catch {
+    return { configured: true, tokenValid: false };
+  }
+}
+
+// เช็คว่าผู้ใช้เพิ่ม OA เป็นเพื่อนหรือยัง — ถ้ายัง push จะได้ 200 แต่ข้อความไม่ถึง
+export async function isFriendWithOA(lineUserId: string | undefined): Promise<boolean | null> {
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  if (!token || !lineUserId || !lineUserId.startsWith("U")) return null;
+  try {
+    const r = await fetch(`https://api.line.me/v2/bot/profile/${lineUserId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (r.status === 404 || r.status === 403) return false; // ยังไม่เพิ่มเพื่อน / บล็อกไว้
+    return r.ok ? true : null;
+  } catch {
+    return null;
+  }
+}
