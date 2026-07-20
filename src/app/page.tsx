@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import Filters from "@/components/Filters";
 import ListingCard from "@/components/ListingCard";
 import CategorySidebar from "@/components/CategorySidebar";
@@ -116,7 +117,7 @@ export default async function Home({
 
             {listings.length === 0 ? (
               <div className="card grid place-items-center gap-2 p-14 text-center">
-                <div className="text-4xl">🧺</div>
+                <div className="flex justify-center"><Logo size={48} /></div>
                 <p className="font-medium text-slate-600">ยังไม่มีประกาศที่ตรงเงื่อนไข</p>
                 <p className="text-sm text-slate-400">ลองปรับตัวกรอง หรือกลับมาดูใหม่เร็ว ๆ นี้</p>
               </div>

@@ -5,6 +5,7 @@ import { getPayment, getPackages, getPaymentSettings } from "@/lib/data";
 import { formatBahtExact } from "@/lib/format";
 import { COMPANY } from "@/lib/company";
 import PrintButton from "@/components/PrintButton";
+import Logo from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 text-lg font-extrabold text-brand-dark">
-              🧺 ตลาดออนไลน์
+              <Logo size={22} /> ตลาดออนไลน์
             </div>
             <div className="mt-1 text-xs text-slate-500">
               <div>{COMPANY.nameTh}</div>

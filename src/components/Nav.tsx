@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "./Logo";
 import { getCurrentSeller, isBuyerLoggedIn } from "@/lib/auth";
 import { daysLeft } from "@/lib/format";
 import { logout, logoutBuyer } from "@/app/actions";
@@ -12,9 +13,7 @@ export default async function Nav() {
     <header className="sticky top-0 z-30 border-b border-slate-200/60 glass">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-brand-dark">
-          <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand to-brand-dark text-white shadow-soft">
-            🧺
-          </span>
+          <Logo size={32} />
           <span>ตลาดออนไลน์</span>
         </Link>
 
