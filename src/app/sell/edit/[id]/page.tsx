@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
 import { getCategories, getListing } from "@/lib/data";
-import { getProvinces, findGeoIds } from "@/lib/geo";
+import { getProvinces, findGeoIds, getDistricts, getSubdistricts } from "@/lib/geo";
 import { UNITS, DELIVERY_METHODS } from "@/lib/types";
 import { updateListingAction, deleteListingAction } from "@/app/actions";
 import ImageUpload from "@/components/ImageUpload";
@@ -39,6 +39,8 @@ export default async function EditListing({
   const categories = await getCategories();
   const provinces = getProvinces();
   const geoIds = findGeoIds(listing!.province, listing!.district, listing!.subdistrict);
+  const geoDistricts = geoIds ? getDistricts(geoIds.provinceId) : [];
+  const geoSubdistricts = geoIds ? getSubdistricts(geoIds.districtId) : [];
   const action = updateListingAction.bind(null, listing!.id);
   const del = deleteListingAction.bind(null, listing!.id);
 
@@ -142,6 +144,8 @@ export default async function EditListing({
             initial={
               geoIds ? { ...geoIds, marketName: listing!.marketName } : undefined
             }
+            initialDistricts={geoDistricts}
+            initialSubdistricts={geoSubdistricts}
           />
 
           <div>

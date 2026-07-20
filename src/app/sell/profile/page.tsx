@@ -7,7 +7,7 @@ import DocUpload from "@/components/DocUpload";
 import { safeNext } from "@/lib/url";
 import { VERIFY_LABEL } from "@/lib/types";
 import LocationPicker from "@/components/LocationPicker";
-import { getProvinces, findGeoIds } from "@/lib/geo";
+import { getProvinces, findGeoIds, getDistricts, getSubdistricts } from "@/lib/geo";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +35,8 @@ export default async function ShopProfile({
     seller.province && seller.district && seller.subdistrict
       ? findGeoIds(seller.province, seller.district, seller.subdistrict)
       : null;
+  const shopDistricts = shopGeo ? getDistricts(shopGeo.provinceId) : [];
+  const shopSubdistricts = shopGeo ? getSubdistricts(shopGeo.districtId) : [];
   const vs = VERIFY_LABEL[seller.verifyStatus];
 
   return (
@@ -144,6 +146,8 @@ export default async function ShopProfile({
               initial={
                 shopGeo ? { ...shopGeo, marketName: seller.marketName ?? "" } : undefined
               }
+              initialDistricts={shopDistricts}
+              initialSubdistricts={shopSubdistricts}
             />
           </div>
 

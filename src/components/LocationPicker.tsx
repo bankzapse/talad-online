@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Item = { id: number; name: string };
 
@@ -12,56 +12,60 @@ export interface LocationInitial {
 }
 
 // จังหวัด → อำเภอ → ตำบล (dropdown ต่อเนื่อง) + ชื่อตลาด/พื้นที่ พิมพ์เอง
-// initial = ค่าเดิมตอนแก้ไขประกาศ (โหลดอำเภอ/ตำบลของเดิมมาให้เลย ไม่ต้องเลือกใหม่)
+//
+// initial = ค่าเดิม (ที่ตั้งร้าน หรือประกาศที่กำลังแก้ไข)
+// initialDistricts/initialSubdistricts = รายการของค่าเดิม ส่งมาจาก server เลย
+//   เหตุผล: ถ้าให้ client ไป fetch เอาตอน mount ค่าที่เติมไว้จะถูก effect ล้างทิ้ง
+//   (effect ของ React รันซ้ำได้) และผู้ใช้จะเห็นช่องอำเภอ/ตำบลว่างทั้งที่ตั้งค่าไว้แล้ว
 export default function LocationPicker({
   provinces,
   initial,
+  initialDistricts = [],
+  initialSubdistricts = [],
 }: {
   provinces: Item[];
   initial?: LocationInitial;
+  initialDistricts?: Item[];
+  initialSubdistricts?: Item[];
 }) {
   const [provinceId, setProvinceId] = useState(initial ? String(initial.provinceId) : "");
   const [districtId, setDistrictId] = useState(initial ? String(initial.districtId) : "");
   const [subdistrictId, setSubdistrictId] = useState(
     initial ? String(initial.subdistrictId) : ""
   );
-  const [districts, setDistricts] = useState<Item[]>([]);
-  const [subdistricts, setSubdistricts] = useState<Item[]>([]);
+  const [districts, setDistricts] = useState<Item[]>(initialDistricts);
+  const [subdistricts, setSubdistricts] = useState<Item[]>(initialSubdistricts);
   const [loading, setLoading] = useState<"d" | "s" | null>(null);
-  // ครั้งแรกที่โหลดค่าเดิม ต้องไม่ล้าง districtId/subdistrictId ทิ้ง
-  const [hydrating, setHydrating] = useState(Boolean(initial));
+  // ข้ามการล้างค่าเฉพาะรอบแรก — ใช้ ref ไม่ใช่ state เพราะต้องไม่ทำให้ re-render
+  const firstRun = useRef(true);
 
   useEffect(() => {
-    if (!hydrating) {
-      setDistrictId("");
-      setSubdistrictId("");
-      setSubdistricts([]);
-    }
+    if (firstRun.current) return; // ค่าเดิมกับรายการมาครบจาก server แล้ว
+    setDistrictId("");
+    setSubdistrictId("");
     setDistricts([]);
+    setSubdistricts([]);
     if (!provinceId) return;
     setLoading("d");
     fetch(`/api/geo?province=${provinceId}`)
       .then((r) => r.json())
       .then((d) => setDistricts(d.items ?? []))
       .finally(() => setLoading(null));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provinceId]);
 
   useEffect(() => {
-    if (!hydrating) {
-      setSubdistrictId("");
-      setSubdistricts([]);
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
     }
+    setSubdistrictId("");
+    setSubdistricts([]);
     if (!districtId) return;
     setLoading("s");
     fetch(`/api/geo?district=${districtId}`)
       .then((r) => r.json())
       .then((d) => setSubdistricts(d.items ?? []))
-      .finally(() => {
-        setLoading(null);
-        setHydrating(false); // ค่าเดิมโหลดครบแล้ว — ต่อจากนี้เปลี่ยนจังหวัดให้ล้างค่าตามปกติ
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      .finally(() => setLoading(null));
   }, [districtId]);
 
   return (

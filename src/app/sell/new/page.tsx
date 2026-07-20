@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
 import { getCategories } from "@/lib/data";
-import { getProvinces, findGeoIds } from "@/lib/geo";
+import { getProvinces, findGeoIds, getDistricts, getSubdistricts } from "@/lib/geo";
 import { UNITS, DELIVERY_METHODS } from "@/lib/types";
 import { createListingAction } from "@/app/actions";
 import ImageUpload from "@/components/ImageUpload";
@@ -29,6 +29,9 @@ export default async function NewListing({
     seller.province && seller.district && seller.subdistrict
       ? findGeoIds(seller.province, seller.district, seller.subdistrict)
       : null;
+  // ส่งรายการอำเภอ/ตำบลของค่าเดิมไปด้วย ไม่ให้ client ต้อง fetch แล้วค่าหาย
+  const shopDistricts = shopGeo ? getDistricts(shopGeo.provinceId) : [];
+  const shopSubdistricts = shopGeo ? getSubdistricts(shopGeo.districtId) : [];
   const action = createListingAction.bind(null, seller.id);
 
   return (
@@ -130,6 +133,8 @@ export default async function NewListing({
               initial={
                 shopGeo ? { ...shopGeo, marketName: seller.marketName ?? "" } : undefined
               }
+              initialDistricts={shopDistricts}
+              initialSubdistricts={shopSubdistricts}
             />
           </div>
 
