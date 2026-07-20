@@ -56,7 +56,7 @@ export default async function Home({
               นัดเจอจ่ายเงินสด · ผู้ขายได้แจ้งเตือนทาง LINE ทันที · กรองตามพื้นที่ เรียงราคาได้
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/75">
-              <span><b className="text-white">{listings.length}</b> ประกาศ</span>
+              <span><b className="text-white">{total}</b> ประกาศ</span>
               <span>·</span>
               <span><b className="text-white">{provinces.length}</b> จังหวัด</span>
               <span>·</span>
