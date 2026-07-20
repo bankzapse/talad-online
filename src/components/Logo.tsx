@@ -1,4 +1,5 @@
-// เครื่องหมายการค้า "ตลาดออนไลน์" — ตะกร้าตลาดกับใบไม้ สื่อของสดจากตลาด
+// เครื่องหมายการค้า "Talad" — ถุงช้อปปิ้งกับเครื่องหมายถูก สื่อ "ซื้อของอย่างมั่นใจ"
+// ไฟล์ต้นฉบับความละเอียดสูงอยู่ใน brand/ (PNG 1024/512 สำหรับ LINE)
 // ใช้ซ้ำได้ทุกที่ ปรับขนาดผ่าน prop เดียว (nav / footer / ใบเสร็จ / หน้า error)
 export default function Logo({
   size = 32,
@@ -18,15 +19,21 @@ export default function Logo({
     >
       <rect width="64" height="64" rx={rounded ? 15 : 0} fill="#059669" />
       <path
-        d="M16 26h32l-4 24a4 4 0 0 1-4 3.4H24a4 4 0 0 1-4-3.4L16 26Z"
+        d="M24.5 28v-3.5c0-4.1 3.4-7.5 7.5-7.5s7.5 3.4 7.5 7.5V28"
         fill="none"
         stroke="#fff"
-        strokeWidth="4"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+      />
+      <rect x="23" y="27.5" width="18" height="19" rx="3.6" fill="#fff" />
+      <path
+        d="M27.2 37.2l3.8 3.8 7.4-8"
+        fill="none"
+        stroke="#059669"
+        strokeWidth="3.6"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M12.5 26h39" stroke="#fff" strokeWidth="4" strokeLinecap="round" />
-      <path d="M32 26c0-7 4-12 10.5-13.5C42 19 38 25 32 26Z" fill="#fff" />
-      <path d="M32 26c-.5-5.5-3.5-9-8.5-10.5.5 6.5 3.5 9.5 8.5 10.5Z" fill="#fff" />
     </svg>
   );
 }

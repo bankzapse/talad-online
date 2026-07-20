@@ -39,10 +39,10 @@ export const metadata: Metadata = {
       "ของสด ผัก ผลไม้ อาหารทะเล และมือสองจากตลาดใกล้บ้าน นัดเจอจ่ายเงินสด แจ้งเตือนผ่าน LINE",
     images: [
       {
-        url: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&h=630&fit=crop&q=80",
+        url: "https://talad-online.vercel.app/og.png",
         width: 1200,
         height: 630,
-        alt: "ตลาดสดของสด ผัก ผลไม้",
+        alt: "ตลาดออนไลน์ — ของสดและสินค้ามือสองจากตลาดใกล้บ้าน",
       },
     ],
   },
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     title: "ตลาดออนไลน์ — ของสด + มือสอง จากตลาดใกล้คุณ",
     description: "นัดเจอจ่ายเงินสด แจ้งเตือนผ่าน LINE ค้นหาตามพื้นที่ เรียงราคาได้",
     images: [
-      "https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&h=630&fit=crop&q=80",
+      "https://talad-online.vercel.app/og.png",
     ],
   },
   robots: { index: true, follow: true },
