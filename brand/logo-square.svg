@@ -3,24 +3,29 @@
   <rect width="1024" height="1024" rx="150" fill="#059669"/>
 
   <!-- หูถุง -->
-  <path d="M410 410v-38c0-56 45-102 102-102s102 46 102 102v38"
+  <path d="M410 372v-34c0-56 45-102 102-102s102 46 102 102v34"
         fill="none" stroke="#fff" stroke-width="34" stroke-linecap="round"/>
 
   <!-- ตัวถุง -->
-  <rect x="398" y="404" width="228" height="212" rx="34" fill="#fff"/>
+  <rect x="398" y="366" width="228" height="212" rx="34" fill="#fff"/>
 
   <!-- เครื่องหมายถูก เจาะเป็นสีพื้น -->
-  <path d="M441 512l46 46 96-100"
+  <path d="M441 474l46 46 96-100"
         fill="none" stroke="#059669" stroke-width="38"
         stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- ชื่อแบรนด์ -->
-  <text x="512" y="806" text-anchor="middle" fill="#fff"
+  <text x="512" y="740" text-anchor="middle" fill="#fff"
         font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
-        font-size="132" font-weight="500" letter-spacing="1">Talad</text>
+        font-size="126" font-weight="500" letter-spacing="1">Talad</text>
+
+  <!-- ชื่อไทย -->
+  <text x="512" y="838" text-anchor="middle" fill="#fff"
+        font-family="Thonburi, Noto Sans Thai, Sukhumvit Set, Helvetica, sans-serif"
+        font-size="72" font-weight="500">ตลาดออนไลน์</text>
 
   <!-- คำบรรยาย -->
-  <text x="512" y="884" text-anchor="middle" fill="#ffffff" fill-opacity="0.88"
+  <text x="512" y="906" text-anchor="middle" fill="#ffffff" fill-opacity="0.85"
         font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
-        font-size="40" font-weight="400" letter-spacing="11">ONLINE MARKET</text>
+        font-size="36" font-weight="400" letter-spacing="10">ONLINE STORE</text>
 </svg>
