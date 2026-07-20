@@ -1,9 +1,11 @@
 import type { Unit } from "./types";
 
 // แสดงราคาพร้อมหน่วยชัดเจน กันการเทียบข้ามหน่วย (กติกาสำคัญในแผน)
+// หน่วยที่ขึ้นต้นด้วย "บาท/" เป็นหน่วยราคาอยู่แล้ว (เช่น บาท/500 ก.)
+// ต่อท้ายตรง ๆ จะได้ "250 ฿ / บาท/500 ก." — ต้องตัดคำว่า "บาท" ออกก่อน
 export function formatPrice(price: number, unit: Unit): string {
   const n = new Intl.NumberFormat("th-TH").format(price);
-  if (unit === "บาท/กก.") return `${n} ฿/กก.`;
+  if (unit.startsWith("บาท/")) return `${n} ฿/${unit.slice(4)}`;
   return `${n} ฿ / ${unit}`;
 }
 
@@ -17,7 +19,10 @@ export function countUnit(unit: Unit | string): string {
 }
 
 export function formatStock(stock: number, unit: Unit | string): string {
-  return `เหลือ ${new Intl.NumberFormat("th-TH").format(stock)} ${countUnit(unit)}`;
+  const n = new Intl.NumberFormat("th-TH").format(stock);
+  const cu = countUnit(unit);
+  // หน่วยที่ขึ้นต้นด้วยตัวเลข (100 ก.) ต้องมี × คั่น ไม่งั้นอ่านเป็น "เหลือ 3 100 ก."
+  return /^\d/.test(cu) ? `เหลือ ${n} × ${cu}` : `เหลือ ${n} ${cu}`;
 }
 
 export function formatBaht(n: number): string {
