@@ -7,6 +7,25 @@ import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
+// error จาก LINE OAuth — บอกสาเหตุและวิธีแก้ ไม่ใช่แค่โยนรหัสให้ผู้ใช้เดา
+const LOGIN_ERR: Record<string, { title: string; hint: string }> = {
+  session: {
+    title: "การเข้าสู่ระบบขาดช่วง",
+    hint: "มักเกิดเมื่อเปิดลิงก์จากในแอป (LINE, Messenger, Facebook) แล้วเด้งไปเบราว์เซอร์อื่น — กดปุ่มด้านล่างลองใหม่ หรือเปิดเว็บนี้ในเบราว์เซอร์ (Safari/Chrome) แล้วค่อยเข้าสู่ระบบ",
+  },
+  cancelled: {
+    title: "คุณยกเลิกการเข้าสู่ระบบ",
+    hint: "ถ้าต้องการใช้งานต่อ กดเข้าสู่ระบบด้วย LINE อีกครั้ง",
+  },
+  state: {
+    title: "ข้อมูลยืนยันไม่ตรงกัน",
+    hint: "เพื่อความปลอดภัยระบบยกเลิกการเข้าสู่ระบบนี้ กรุณาลองใหม่อีกครั้ง",
+  },
+  token: { title: "เชื่อมต่อ LINE ไม่สำเร็จ", hint: "ลองใหม่อีกครั้ง หากยังไม่ได้ติดต่อทีมงาน" },
+  profile: { title: "อ่านข้อมูลโปรไฟล์ไม่ได้", hint: "ลองใหม่อีกครั้ง หากยังไม่ได้ติดต่อทีมงาน" },
+  oauth: { title: "เข้าสู่ระบบไม่สำเร็จ", hint: "ลองใหม่อีกครั้ง" },
+};
+
 export default async function LoginPage({
   searchParams,
 }: {
@@ -23,46 +42,51 @@ export default async function LoginPage({
   const adminIn = await isAdminLoggedIn();
   const anyIn = Boolean(seller) || buyerIn || adminIn;
 
+  const err = sp.error ? LOGIN_ERR[sp.error] ?? LOGIN_ERR.oauth : null;
+  const roleCount = [Boolean(seller), buyerIn, adminIn].filter(Boolean).length;
+
+  // แสดงเฉพาะ role ที่ล็อกอินอยู่จริง — ไม่ต้องโชว์บรรทัด "ยังไม่ได้เข้าสู่ระบบ" ให้รก
+  // ปุ่ม "ออกจากระบบทั้งหมด" โผล่เมื่อล็อกอินหลาย role เท่านั้น (เครื่องที่ใช้ร่วมกัน)
   const statusCard = anyIn ? (
-    <div className="card mb-4 p-5">
-      <div className="text-sm font-semibold text-ink">สถานะการเข้าสู่ระบบตอนนี้</div>
-      <ul className="mt-3 space-y-2 text-sm">
-        <li className="flex items-center justify-between gap-3">
-          <span>🏪 ผู้ขาย — {seller ? (seller.shopName ?? seller.displayName) : "ยังไม่ได้เข้าสู่ระบบ"}</span>
-          {seller && (
+    <div className="card mb-4 p-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        เข้าสู่ระบบอยู่
+      </div>
+      <ul className="mt-2 space-y-2 text-sm">
+        {seller && (
+          <li className="flex items-center justify-between gap-3">
+            <span>🏪 ผู้ขาย — <b>{seller.shopName ?? seller.displayName}</b></span>
             <form action={logout}>
               <button className="text-xs text-slate-400 hover:text-red-600">ออกจากระบบ</button>
             </form>
-          )}
-        </li>
-        <li className="flex items-center justify-between gap-3">
-          <span>👤 ผู้ซื้อ — {buyerIn ? "เข้าสู่ระบบแล้ว" : "ยังไม่ได้เข้าสู่ระบบ"}</span>
-          {buyerIn && (
+          </li>
+        )}
+        {buyerIn && (
+          <li className="flex items-center justify-between gap-3">
+            <span>👤 ผู้ซื้อ</span>
             <form action={logoutBuyer}>
               <button className="text-xs text-slate-400 hover:text-red-600">ออกจากระบบ</button>
             </form>
-          )}
-        </li>
-        <li className="flex items-center justify-between gap-3">
-          <span>🔒 แอดมิน — {adminIn ? "เข้าสู่ระบบแล้ว" : "ยังไม่ได้เข้าสู่ระบบ"}</span>
-          {adminIn && (
+          </li>
+        )}
+        {adminIn && (
+          <li className="flex items-center justify-between gap-3">
+            <span>🔒 แอดมิน</span>
             <form action={logoutAdmin}>
               <button className="text-xs text-slate-400 hover:text-red-600">ออกจากระบบ</button>
             </form>
-          )}
-        </li>
+          </li>
+        )}
       </ul>
-      <form action={logoutAll} className="mt-4">
-        <SubmitButton className="btn-outline w-full py-2 text-sm" pendingText="กำลังออก…">
-          ออกจากระบบทั้งหมด
-        </SubmitButton>
-      </form>
+      {roleCount > 1 && (
+        <form action={logoutAll} className="mt-3 border-t border-slate-100 pt-3">
+          <SubmitButton className="btn-outline w-full py-1.5 text-xs" pendingText="กำลังออก…">
+            ออกจากระบบทั้งหมด
+          </SubmitButton>
+        </form>
+      )}
     </div>
-  ) : (
-    <div className="card mb-4 p-4 text-center text-sm text-slate-500">
-      ยังไม่ได้เข้าสู่ระบบ
-    </div>
-  );
+  ) : null;
 
   // ---- ผู้ซื้อ ----
   if (isBuyer) {
@@ -72,11 +96,19 @@ export default async function LoginPage({
       <div className="mx-auto max-w-md">
         {statusCard}
         <div className="card p-6 text-center">
-          <div className="text-4xl">💬</div>
-          <h1 className="mt-2 text-lg font-bold">เข้าสู่ระบบเพื่อติดต่อผู้ขาย</h1>
+          <span className="chip border-brand/25 bg-brand-soft text-brand-dark">
+            👤 สำหรับผู้ซื้อ
+          </span>
+          <h1 className="mt-3 text-lg font-bold">เข้าสู่ระบบเพื่อสั่งซื้อ / ติดต่อผู้ขาย</h1>
           <p className="mt-1 text-sm text-slate-500">
             ต้องเข้าสู่ระบบก่อนกดติดต่อ เพื่อป้องกันการสแปมผู้ขาย
           </p>
+          {err && (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-xs text-amber-800">
+              <div className="font-medium">{err.title}</div>
+              <p className="mt-1 leading-relaxed">{err.hint}</p>
+            </div>
+          )}
           {lineOn ? (
             <Link href={lineHref} className="btn-primary mt-5 w-full py-3">
               <span className="text-lg">💚</span> เข้าสู่ระบบด้วย LINE
@@ -95,6 +127,12 @@ export default async function LoginPage({
             </form>
           )}
         </div>
+        <p className="mt-4 text-center text-sm text-slate-500">
+          จะมาเปิดร้านขายของ?{" "}
+          <Link href="/login" className="font-medium text-brand-dark underline">
+            เข้าสู่ระบบสำหรับผู้ขาย
+          </Link>
+        </p>
       </div>
     );
   }
@@ -108,15 +146,18 @@ export default async function LoginPage({
       {statusCard}
       <div className="card p-6">
         <div className="text-center">
-          <div className="text-4xl">🏪</div>
-          <h1 className="mt-2 text-lg font-bold">ผู้ขาย — เข้าสู่ระบบ</h1>
+          <span className="chip border-brand/25 bg-brand-soft text-brand-dark">
+            🏪 สำหรับผู้ขาย
+          </span>
+          <h1 className="mt-3 text-lg font-bold">เข้าสู่ระบบเพื่อลงขาย</h1>
           <p className="mt-1 text-sm text-slate-500">เข้าสู่ระบบด้วย LINE ไม่ต้องจำรหัสผ่าน</p>
         </div>
 
-        {sp.error && (
-          <p className="mt-4 rounded-lg bg-red-50 p-2 text-center text-xs text-red-600">
-            เข้าสู่ระบบไม่สำเร็จ ({sp.error}) ลองใหม่อีกครั้ง
-          </p>
+        {err && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-xs text-amber-800">
+            <div className="font-medium">{err.title}</div>
+            <p className="mt-1 leading-relaxed">{err.hint}</p>
+          </div>
         )}
 
         {lineOn ? (
@@ -154,6 +195,12 @@ export default async function LoginPage({
           <a href="/privacy" className="underline">นโยบายความเป็นส่วนตัว</a>
         </p>
       </div>
+      <p className="mt-4 text-center text-sm text-slate-500">
+        มาซื้อของ?{" "}
+        <Link href="/login?buyer=1" className="font-medium text-brand-dark underline">
+          เข้าสู่ระบบสำหรับผู้ซื้อ
+        </Link>
+      </p>
     </div>
   );
 }

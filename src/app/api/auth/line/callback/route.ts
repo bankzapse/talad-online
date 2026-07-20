@@ -17,7 +17,16 @@ export async function GET(req: Request) {
   const raw = jar.get("line_oauth")?.value;
   jar.delete("line_oauth");
 
-  if (!code || !state || !raw) {
+  // ผู้ใช้กดยกเลิกที่หน้า LINE
+  if (url.searchParams.get("error")) {
+    return NextResponse.redirect(new URL("/login?error=cancelled", origin));
+  }
+  // cookie หาย = เปิดคนละเบราว์เซอร์กับตอนเริ่ม (in-app browser เด้งออกไปแอปอื่น)
+  // หรือค้างไว้นานเกิน 20 นาที
+  if (!raw) {
+    return NextResponse.redirect(new URL("/login?error=session", origin));
+  }
+  if (!code || !state) {
     return NextResponse.redirect(new URL("/login?error=oauth", origin));
   }
   const saved = JSON.parse(raw) as { state: string; next: string; buyer: boolean };

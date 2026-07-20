@@ -21,10 +21,11 @@ export async function GET(req: Request) {
   const state = crypto.randomUUID();
 
   const jar = await cookies();
+  // อายุ 20 นาที — ผู้ใช้ที่ต้องพิมพ์อีเมล/รหัสผ่าน LINE ใช้เวลานานกว่าคนที่มีแอป
   jar.set("line_oauth", JSON.stringify({ state, next, buyer }), {
     httpOnly: true,
     path: "/",
-    maxAge: 600,
+    maxAge: 1200,
     sameSite: "lax",
   });
 
