@@ -115,6 +115,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <ul className="space-y-1.5 text-slate-500">
                     <li><Link href="/terms" className="hover:text-brand-dark">ข้อตกลงการใช้งาน</Link></li>
                     <li><Link href="/privacy" className="hover:text-brand-dark">นโยบายความเป็นส่วนตัว</Link></li>
+                    <li><Link href="/my-data" className="hover:text-brand-dark">ข้อมูลส่วนบุคคลของฉัน</Link></li>
                   </ul>
                 </div>
               </div>

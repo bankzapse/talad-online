@@ -57,6 +57,7 @@ import { verifySlipAmount } from "@/lib/slip";
 import { provinceName, districtName, subdistrictName, isValidGeo } from "@/lib/geo";
 import { setAdminPassword, requireAdmin } from "@/lib/admin-auth";
 import { createSessionToken } from "@/lib/session";
+import { eraseSellerData, eraseBuyerData } from "@/lib/pdpa";
 
 // ---------- auth (LINE Login stub) ----------
 // เมื่อ LINE Login เปิดใช้จริงแล้ว → ปิด demo login ทั้งหมด (บังคับผ่าน LINE เท่านั้น)
@@ -693,4 +694,29 @@ export async function cancelOwnOrderAction(orderId: string, formData: FormData) 
     shop?.displayName
   );
   redirect("/orders?cancelled=1");
+}
+
+// ---------- สิทธิเจ้าของข้อมูล (PDPA) ----------
+// ลบข้อมูลตัวเอง — ต้องยืนยันด้วยการพิมพ์คำว่า "ลบบัญชี" กันกดพลาด
+export async function eraseMyDataAction(role: "seller" | "buyer", formData: FormData) {
+  const confirm = String(formData.get("confirm") || "").trim();
+  if (confirm !== "ลบบัญชี") redirect("/my-data?error=confirm");
+
+  if (role === "buyer") {
+    const buyerKey = await getBuyerKey();
+    if (!buyerKey) redirect("/login?buyer=1&next=/my-data");
+    const res = await eraseBuyerData(buyerKey!);
+    if (!res.ok) redirect(`/my-data?error=open&count=${res.count}`);
+    const jar = await cookies();
+    jar.delete(BUYER_COOKIE);
+    redirect("/?erased=1");
+  }
+
+  const seller = await getCurrentSeller();
+  if (!seller) redirect("/login");
+  const res = await eraseSellerData(seller!.id);
+  if (!res.ok) redirect(`/my-data?error=open&count=${res.count}`);
+  const jar = await cookies();
+  jar.delete(SESSION_COOKIE);
+  redirect("/?erased=1");
 }
