@@ -69,3 +69,8 @@ export function timeAgo(iso: string): string {
   const days = Math.floor(hrs / 24);
   return `${days} วันที่แล้ว`;
 }
+
+// เลขอ้างอิงคำสั่งซื้อที่คนอ่านออก/บอกทางโทรศัพท์ได้ — ไม่ใช้ uuid เต็ม
+export function orderRef(id: string): string {
+  return id.replace(/-/g, "").slice(0, 8).toUpperCase();
+}

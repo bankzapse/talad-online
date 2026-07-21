@@ -4,8 +4,6 @@ import { getBuyerKey } from "@/lib/auth";
 import { getBuyerOrders, getSeller } from "@/lib/data";
 import { formatPrice, timeAgo } from "@/lib/format";
 import { ORDER_STATUS, DELIVERY_METHODS } from "@/lib/types";
-import { cancelOwnOrderAction } from "@/app/actions";
-import SubmitButton from "@/components/SubmitButton";
 import type { Unit } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +33,7 @@ export default async function BuyerOrders({
 
       {sp.placed === "1" && (
         <div className="mb-4 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
-          ✓ ส่งคำสั่งซื้อแล้ว — รอร้านยืนยัน คุณจะได้รับแจ้งเตือนทาง LINE
+          ✓ ส่งคำสั่งซื้อแล้ว — รอร้านยืนยัน
         </div>
       )}
       {sp.dup === "1" && (
@@ -62,7 +60,7 @@ export default async function BuyerOrders({
             const st = ORDER_STATUS[o.status];
             const dm = DELIVERY_METHODS.find((d) => d.value === o.deliveryMethod);
             return (
-              <div key={o.id} className="card p-4">
+              <Link key={o.id} href={`/orders/${o.id}`} className="card block p-4 transition hover:shadow-lift">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-medium text-ink">{o.listingTitle}</div>
@@ -91,42 +89,10 @@ export default async function BuyerOrders({
                   <div className="mt-2 text-xs text-slate-400">📍 ส่งที่: {o.address}</div>
                 )}
 
-                {/* ช่องทางติดต่อร้าน + ปุ่มยกเลิก — เฉพาะออร์เดอร์ที่ยังไม่จบ */}
-                {(o.status === "pending" || o.status === "confirmed") && (
-                  <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
-                    {(() => {
-                      const shop = shops.get(o.sellerId);
-                      return (
-                        <div className="text-xs text-slate-500">
-                          🏪 {shop?.shopName ?? shop?.displayName ?? "ร้านค้า"}
-                          {shop?.contactPhone && (
-                            <>
-                              {" · "}
-                              <a href={`tel:${shop.contactPhone}`} className="text-brand-dark underline">
-                                {shop.contactPhone}
-                              </a>
-                            </>
-                          )}
-                          {shop?.lineId && ` · LINE ${shop.lineId}`}
-                        </div>
-                      );
-                    })()}
-                    <form action={cancelOwnOrderAction.bind(null, o.id)} className="flex gap-1">
-                      <input
-                        name="reason"
-                        placeholder="เหตุผลที่ยกเลิก (ถ้ามี)"
-                        className="input flex-1 py-1 text-xs"
-                      />
-                      <SubmitButton
-                        className="btn-outline px-3 py-1 text-xs"
-                        pendingText="กำลังยกเลิก…"
-                      >
-                        ยกเลิกคำสั่งซื้อ
-                      </SubmitButton>
-                    </form>
-                  </div>
-                )}
-              </div>
+                <div className="mt-3 border-t border-slate-100 pt-2 text-xs text-brand-dark">
+                  ดูรายละเอียด / ติดต่อร้าน →
+                </div>
+              </Link>
             );
           })}
         </div>

@@ -597,7 +597,7 @@ export async function createOrderAction(listingId: string, formData: FormData) {
     shop!.displayName
   );
 
-  redirect("/orders?placed=1");
+  redirect(`/orders/${order.id}?placed=1`);
 }
 
 // ตรวจว่าออร์เดอร์นี้เป็นของผู้ขายที่ล็อกอินอยู่จริง (กัน IDOR)

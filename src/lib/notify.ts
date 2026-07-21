@@ -21,7 +21,7 @@ export type NotifyEvent =
 
 export const NOTIFY: Record<NotifyEvent, boolean> = {
   order_new: true,
-  order_confirmed: false, // ปิด — ประหยัดโควตา ผู้ซื้อดูสถานะที่ /orders ได้
+  order_confirmed: true, // เปิด — จังหวะที่ผู้ซื้อรอคำตอบว่า "ร้านรับออร์เดอร์ไหม"
   order_shipped: true,
   order_cancelled: true,
   listing_approved: false, // ปิด — ประกาศขึ้นเว็บเองอยู่แล้ว ไม่เร่งด่วน
