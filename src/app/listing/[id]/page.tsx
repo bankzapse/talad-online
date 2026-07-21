@@ -20,12 +20,23 @@ import Gallery from "@/components/Gallery";
 
 export const dynamic = "force-dynamic";
 
+const ORDER_ERR: Record<string, string> = {
+  ownshop:
+    "นี่คือประกาศของร้านคุณเอง — สั่งซื้อของตัวเองไม่ได้ ถ้าต้องการทดสอบให้ล็อกอินผู้ซื้อด้วยบัญชี LINE อื่น",
+  unavailable: "ประกาศนี้ไม่เปิดขายแล้ว",
+  shopclosed: "ร้านนี้ปิดรับออร์เดอร์ชั่วคราว (สมาชิกหมดอายุหรือถูกระงับ)",
+};
+
 export default async function ListingDetail({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const orderErr = sp.error ? ORDER_ERR[sp.error] : null;
   const listing = await getListing(id);
   // แสดงเฉพาะประกาศที่อนุมัติแล้ว — ร่าง/รอตรวจ/ถูกระงับ ต้องไม่เปิดดูได้ผ่าน URL ตรง
   // (ไม่งั้นแชร์ลิงก์ขายได้เลยโดยไม่ต้องผ่านการอนุมัติ)
@@ -144,6 +155,12 @@ export default async function ListingDetail({
               </div>
             );
           })()}
+
+          {orderErr && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              {orderErr}
+            </div>
+          )}
 
           <div className="mt-3 space-y-2">
             {listing.stock !== null && listing.stock <= 0 ? (

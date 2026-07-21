@@ -546,19 +546,27 @@ export async function createOrderAction(listingId: string, formData: FormData) {
   const buyerKey = await getBuyerKey();
   if (!buyerKey) redirect(`/login?buyer=1&next=/listing/${listingId}/order`);
 
+  // ทุกกรณีที่สั่งไม่ได้ ต้องบอกเหตุผล — เด้งกลับเงียบ ๆ ผู้ใช้จะงงว่ากดแล้วไม่มีอะไรเกิดขึ้น
+  const back = `/listing/${listingId}/order`;
+
   const listing = await getListing(listingId);
-  if (!listing || listing.status !== "active") redirect(`/listing/${listingId}`);
+  if (!listing || listing.status !== "active") redirect(`/listing/${listingId}?error=unavailable`);
+
   // ร้านต้องยังใช้งานได้จริง (สมาชิกไม่หมด/ไม่ถูกแบน) — หน้าเช็คแล้วแต่ action ต้องเช็คเองด้วย
   const shop = await getSeller(listing!.sellerId);
-  if (!shop || !isSellerActive(shop)) redirect(`/listing/${listingId}`);
-  // ห้ามสั่งของร้านตัวเอง
-  if (shop!.lineUserId && shop!.lineUserId === buyerKey) redirect(`/listing/${listingId}`);
+  if (!shop || !isSellerActive(shop)) redirect(`/listing/${listingId}?error=shopclosed`);
+
+  // ห้ามสั่งของร้านตัวเอง (ล็อกอินด้วยบัญชี LINE เดียวกับร้าน)
+  if (shop!.lineUserId && shop!.lineUserId === buyerKey) {
+    redirect(`/listing/${listingId}?error=ownshop`);
+  }
+
   // กันสั่งซ้ำรัว ๆ — มีออร์เดอร์ที่ยังรอร้านยืนยันของประกาศนี้อยู่แล้ว
   if (await hasOpenOrder(buyerKey!, listing!.id)) redirect("/orders?dup=1");
-  // ของหมดแล้วสั่งไม่ได้
-  if (listing!.stock !== null && listing!.stock <= 0) redirect(`/listing/${listingId}`);
 
-  const back = `/listing/${listingId}/order`;
+  // ของหมดแล้วสั่งไม่ได้
+  if (listing!.stock !== null && listing!.stock <= 0) redirect(`${back}?error=soldout`);
+
   const buyerName = String(formData.get("buyerName") || "").trim().slice(0, 80);
   const buyerPhone = normalizePhone(String(formData.get("buyerPhone") || "").trim());
   const address = String(formData.get("address") || "").trim().slice(0, 500);
