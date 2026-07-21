@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { exchangeCodeForToken, getLineProfile } from "@/lib/line-login";
 import { upsertSellerFromLine } from "@/lib/data";
+import { linkSellerRichMenu } from "@/lib/line";
 import { SESSION_COOKIE, BUYER_COOKIE } from "@/lib/auth";
 import { createSessionToken } from "@/lib/session";
 import { safeNext } from "@/lib/url";
@@ -51,6 +52,9 @@ export async function GET(req: Request) {
 
   const seller = await upsertSellerFromLine(profile.userId, profile.displayName);
   jar.set(SESSION_COOKIE, createSessionToken(seller.id), opts);
+
+  // สลับเมนูในแชท LINE เป็นเมนูผู้ขาย (ล้มเหลวไม่กระทบการล็อกอิน)
+  void linkSellerRichMenu(profile.userId);
 
   // ผู้ขายใหม่ยังไม่มีชื่อร้าน → พาไปกรอกข้อมูลร้านต่อเลย
   // (ไม่งั้นตกไปหน้า /sell ที่ยังทำอะไรไม่ได้ ต้องหาปุ่มเอง)

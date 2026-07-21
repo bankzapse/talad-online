@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2500" height="1686" viewBox="0 0 2500 1686">
+  <rect width="2500" height="1686" fill="#059669"/>
+
+  <g stroke="#ffffff" stroke-opacity="0.25" stroke-width="3">
+    <line x1="833" y1="70" x2="833" y2="1616"/>
+    <line x1="1666" y1="70" x2="1666" y2="1616"/>
+    <line x1="70" y1="843" x2="2430" y2="843"/>
+  </g>
+
+  <g fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(416,330)">
+      <circle r="78" stroke-width="14"/>
+      <path d="M-38 0h76M0 -38v76"/>
+    </g>
+    <g transform="translate(1250,330)">
+      <rect x="-62" y="-78" width="124" height="156" rx="14"/>
+      <path d="M-30 -34h60M-30 4h60M-30 42h34"/>
+    </g>
+    <g transform="translate(2083,330)">
+      <path d="M-78 -20l20-56h116l20 56"/>
+      <path d="M-70 -20v92h140v-92"/>
+      <path d="M-22 72v-46h44v46"/>
+    </g>
+    <g transform="translate(416,1140)">
+      <path d="M-80 60h160"/>
+      <path d="M-52 30l86-86 26 26-86 86h-26z"/>
+      <path d="M14 -36l26 26"/>
+    </g>
+    <g transform="translate(1250,1140)">
+      <rect x="-84" y="-56" width="168" height="112" rx="16"/>
+      <path d="M-84 -14h168"/>
+    </g>
+    <g transform="translate(2083,1140)">
+      <path d="M-76 -60h152v104H-8l-40 40v-40h-28z"/>
+    </g>
+  </g>
+
+  <g fill="#fff" font-family="Thonburi, Noto Sans Thai, Helvetica, sans-serif" text-anchor="middle" font-weight="500">
+    <text x="416"  y="520"  font-size="76">ลงประกาศใหม่</text>
+    <text x="1250" y="520"  font-size="76">รายการสั่งซื้อ</text>
+    <text x="2083" y="520"  font-size="76">ร้านของฉัน</text>
+    <text x="416"  y="1330" font-size="76">ข้อมูลร้าน</text>
+    <text x="1250" y="1330" font-size="76">สมาชิก / ต่ออายุ</text>
+    <text x="2083" y="1330" font-size="76">ช่วยเหลือ</text>
+  </g>
+</svg>

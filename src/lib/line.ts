@@ -107,3 +107,21 @@ export async function isFriendWithOA(lineUserId: string | undefined): Promise<bo
     return null;
   }
 }
+
+// ผูก Rich Menu ผู้ขายให้ userId นี้ — เรียกตอนล็อกอินเป็นผู้ขายสำเร็จ
+// ผู้ซื้อทั่วไปใช้เมนูเริ่มต้น (ตั้งไว้ตอนรัน scripts/richmenu.mjs)
+// ล้มเหลวก็ไม่กระทบการล็อกอิน — แค่เห็นเมนูผู้ซื้อไปก่อน
+export async function linkSellerRichMenu(lineUserId: string | undefined): Promise<boolean> {
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  const menuId = process.env.LINE_RICHMENU_SELLER;
+  if (!token || !menuId || !lineUserId?.startsWith("U")) return false;
+  try {
+    const r = await fetch(
+      `https://api.line.me/v2/bot/user/${lineUserId}/richmenu/${menuId}`,
+      { method: "POST", headers: { Authorization: `Bearer ${token}` } }
+    );
+    return r.ok;
+  } catch {
+    return false;
+  }
+}

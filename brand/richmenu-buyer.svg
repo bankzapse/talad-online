@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2500" height="843" viewBox="0 0 2500 843">
+  <rect width="2500" height="843" fill="#059669"/>
+
+  <g stroke="#ffffff" stroke-opacity="0.25" stroke-width="3">
+    <line x1="833" y1="70" x2="833" y2="773"/>
+    <line x1="1666" y1="70" x2="1666" y2="773"/>
+  </g>
+
+  <g fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(416,340)">
+      <path d="M-84 -56h30l26 112h100l24-76H-42"/>
+      <circle cx="-16" cy="80" r="16"/>
+      <circle cx="52" cy="80" r="16"/>
+    </g>
+    <g transform="translate(1250,340)">
+      <path d="M-80 -40l80-36 80 36v80l-80 36-80-36z"/>
+      <path d="M-80 -40l80 36 80-36M0 -4v80"/>
+    </g>
+    <g transform="translate(2083,340)">
+      <path d="M-78 -20l20-56h116l20 56"/>
+      <path d="M-70 -20v92h140v-92"/>
+      <path d="M-22 72v-46h44v46"/>
+    </g>
+  </g>
+
+  <g fill="#fff" font-family="Thonburi, Noto Sans Thai, Helvetica, sans-serif" text-anchor="middle" font-weight="500">
+    <text x="416"  y="560" font-size="80">เลือกซื้อสินค้า</text>
+    <text x="1250" y="560" font-size="80">คำสั่งซื้อของฉัน</text>
+    <text x="2083" y="560" font-size="80">เปิดร้านขายของ</text>
+  </g>
+</svg>
