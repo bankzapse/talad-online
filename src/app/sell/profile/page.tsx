@@ -22,7 +22,7 @@ const ERR: Record<string, string> = {
 export default async function ShopProfile({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string; saved?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; saved?: string; welcome?: string }>;
 }) {
   const seller = await getCurrentSeller();
   if (!seller) redirect("/login");
@@ -56,6 +56,12 @@ export default async function ShopProfile({
           <span className={`chip shrink-0 ${vs.cls}`}>{vs.text}</span>
         </div>
 
+        {sp.welcome === "1" && (
+          <div className="mt-3 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
+            🎉 ยินดีต้อนรับ! เหลืออีกขั้นตอนเดียว — กรอก<b>ชื่อร้าน</b>กับ<b>เบอร์ติดต่อ</b>
+            แล้วลงประกาศขายได้เลย
+          </div>
+        )}
         {seller.verifyStatus === "rejected" && seller.verifyNote && (
           <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
             เหตุผล: {seller.verifyNote}

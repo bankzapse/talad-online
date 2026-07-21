@@ -46,9 +46,19 @@ export async function GET(req: Request) {
   if (saved.buyer) {
     // ผู้ซื้อ — ใช้ LINE userId เป็น key (gate ปุ่มติดต่อ + rate-limit)
     jar.set(BUYER_COOKIE, createSessionToken(profile.userId), opts);
-  } else {
-    const seller = await upsertSellerFromLine(profile.userId, profile.displayName);
-    jar.set(SESSION_COOKIE, createSessionToken(seller.id), opts);
+    return NextResponse.redirect(new URL(safeNext(saved.next), origin));
+  }
+
+  const seller = await upsertSellerFromLine(profile.userId, profile.displayName);
+  jar.set(SESSION_COOKIE, createSessionToken(seller.id), opts);
+
+  // ผู้ขายใหม่ยังไม่มีชื่อร้าน → พาไปกรอกข้อมูลร้านต่อเลย
+  // (ไม่งั้นตกไปหน้า /sell ที่ยังทำอะไรไม่ได้ ต้องหาปุ่มเอง)
+  if (!seller.shopName) {
+    const next = saved.next && saved.next !== "/sell" ? saved.next : "/sell/new";
+    return NextResponse.redirect(
+      new URL(`/sell/profile?welcome=1&next=${encodeURIComponent(safeNext(next, "/sell/new"))}`, origin)
+    );
   }
 
   return NextResponse.redirect(new URL(safeNext(saved.next), origin));
