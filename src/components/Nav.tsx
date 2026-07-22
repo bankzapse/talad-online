@@ -12,9 +12,9 @@ export default async function Nav() {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/60 glass">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2.5 text-brand-dark">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5 text-brand-dark">
           <Logo size={36} />
-          <span className="flex flex-col leading-none">
+          <span className="flex flex-col whitespace-nowrap leading-none">
             <span className="text-lg font-extrabold tracking-tight">Talad</span>
             <span className="mt-0.5 text-[11px] font-medium text-slate-500">ตลาดออนไลน์</span>
           </span>
@@ -35,11 +35,13 @@ export default async function Nav() {
             </Link>
           )}
 
+          {/* บนมือถือเหลือแค่ปุ่มเดียว — วันสมาชิกกับปุ่มออกจากระบบมีอยู่แล้วในหน้า /sell
+              เอามาไว้บนแถบนี้ด้วยทำให้เบียดจนตัวหนังสือตัดกลางคำ */}
           {seller ? (
             <>
               {dleft !== null && (
                 <span
-                  className={`chip ${
+                  className={`chip hidden sm:inline-flex ${
                     dleft <= 3
                       ? "border-red-200 bg-red-50 text-red-600"
                       : "border-brand/25 bg-brand-soft text-brand-dark"
@@ -49,8 +51,10 @@ export default async function Nav() {
                   {dleft > 0 ? `เหลือ ${dleft} วัน` : "หมดอายุ"}
                 </span>
               )}
-              <Link href="/sell" className="btn-outline">ร้านของฉัน</Link>
-              <form action={logout}>
+              <Link href="/sell" className="btn-outline px-3 py-2 sm:px-5 sm:py-2.5">
+                ร้านของฉัน
+              </Link>
+              <form action={logout} className="hidden sm:block">
                 <button className="rounded-full px-3 py-2 text-slate-500 hover:bg-white/70 hover:text-slate-700">
                   ออกจากระบบ
                 </button>
@@ -58,7 +62,11 @@ export default async function Nav() {
             </>
           ) : buyerIn ? (
             <>
-              <Link href="/login" className="btn-outline">ลงขายกับเรา</Link>
+              {/* ผู้ซื้อไม่มีหน้า "ร้านของฉัน" ให้ออกจากระบบ → ปุ่มนี้ต้องอยู่บนมือถือด้วย
+                  ตัด "ลงขายกับเรา" ออกแทน (ยังเข้าได้จาก footer และหน้า /login) */}
+              <Link href="/login" className="btn-outline hidden sm:inline-flex">
+                ลงขายกับเรา
+              </Link>
               <form action={logoutBuyer}>
                 <button className="rounded-full px-3 py-2 text-slate-500 hover:bg-white/70 hover:text-slate-700">
                   ออกจากระบบ

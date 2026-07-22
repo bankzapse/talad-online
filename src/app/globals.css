@@ -19,8 +19,10 @@ body {
 }
 
 @layer components {
+  /* whitespace-nowrap: บนมือถือปุ่มถูกบีบจนคำไทยตัดกลางคำ ("+ ลง / ประกาศ / ใหม่")
+     ยอมให้ปุ่มล้นแถวดีกว่าปล่อยให้ข้อความหักเป็นก้อนกลม ๆ */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200;
   }
   .btn-primary {
     @apply btn bg-brand text-white shadow-soft hover:bg-brand-dark hover:shadow-lift active:scale-[.98];
@@ -38,7 +40,7 @@ body {
     @apply rounded-2xl border border-slate-200/80 bg-white shadow-soft;
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium;
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium;
   }
   .input {
     @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10;

@@ -7,6 +7,7 @@ import { LISTING_STATUS } from "@/lib/types";
 import { setListingStatusAction, submitListingAction, logout } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 import { TRIAL_DAYS } from "@/lib/packages";
+import { isFriendWithOA, OA_ID, OA_ADD_FRIEND_URL } from "@/lib/line";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +27,11 @@ export default async function SellHome({
   if (!seller) redirect("/login");
   const sp = await searchParams;
 
-  const [listings, categories, pendingOrders] = await Promise.all([
+  const [listings, categories, pendingOrders, friend] = await Promise.all([
     getSellerListings(seller.id),
     getCategories(),
     countPendingOrders(seller.id),
+    isFriendWithOA(seller.lineUserId),
   ]);
   const catMap = new Map(categories.map((c) => [c.id, c]));
   const dleft = daysLeft(seller.membershipExpiresAt);
@@ -81,21 +83,25 @@ export default async function SellHome({
           </Link>
         </div>
       )}
-      {/* แจ้งเตือน LINE — ถ้าไม่เพิ่มเพื่อน OA จะไม่ได้รับออร์เดอร์ใหม่โดยไม่รู้ตัว */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand/25 bg-brand-soft p-3 text-sm text-brand-dark">
-        <span>
-          💚 รับแจ้งเตือนออร์เดอร์ใหม่ทาง LINE — ต้องเพิ่มเพื่อน{" "}
-          <b>@475sxbol</b> ก่อน ไม่งั้นจะไม่ได้รับข้อความ
-        </span>
-        <a
-          href="https://line.me/R/ti/p/@475sxbol"
-          target="_blank"
-          rel="noreferrer"
-          className="btn-primary px-3 py-1.5 text-xs"
-        >
-          เพิ่มเพื่อน
-        </a>
-      </div>
+      {/* แจ้งเตือน LINE — ถ้าไม่เพิ่มเพื่อน OA จะไม่ได้รับออร์เดอร์ใหม่โดยไม่รู้ตัว
+          ขึ้นเฉพาะตอนที่ถามกับ LINE แล้วได้คำตอบชัดว่า "ยังไม่เพิ่ม" (friend === false)
+          ถ้าเพิ่มแล้วหรือเช็คไม่ได้ ก็ไม่ต้องรกหน้าจอ */}
+      {friend === false && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand/25 bg-brand-soft p-3 text-sm text-brand-dark">
+          <span>
+            💚 รับแจ้งเตือนออร์เดอร์ใหม่ทาง LINE — ต้องเพิ่มเพื่อน <b>{OA_ID}</b> ก่อน
+            ไม่งั้นจะไม่ได้รับข้อความ
+          </span>
+          <a
+            href={OA_ADD_FRIEND_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-primary px-3 py-1.5 text-xs"
+          >
+            เพิ่มเพื่อน
+          </a>
+        </div>
+      )}
 
       {!seller.phoneVerified && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
@@ -136,8 +142,10 @@ export default async function SellHome({
         </form>
       </div>
 
-      <div className="mb-5 flex gap-2">
-        <Link href="/sell/new" className="btn-primary">
+      {/* มือถือ = 2 คอลัมน์เต็มความกว้าง (4 ปุ่มเรียงแถวเดียวบีบจนตัวหนังสือหักกลางคำ)
+          จอใหญ่ = เรียงแถวเดียวตามความกว้างจริงของแต่ละปุ่ม */}
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+        <Link href="/sell/new" className="btn-primary col-span-2 sm:col-auto">
           + ลงประกาศใหม่
         </Link>
         <Link href="/sell/orders" className="btn-outline">
@@ -151,7 +159,7 @@ export default async function SellHome({
         <Link href="/sell/membership" className="btn-outline">
           สมาชิก / ต่ออายุ
         </Link>
-        <Link href="/sell/profile" className="btn-outline">
+        <Link href="/sell/profile" className="btn-outline col-span-2 sm:col-auto">
           ข้อมูลร้าน
         </Link>
       </div>
@@ -174,13 +182,23 @@ export default async function SellHome({
         {listings.map((l) => {
           const cat = catMap.get(l.categoryId);
           return (
-            <div key={l.id} className="card flex items-center gap-3 p-3">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-2xl">
-                {cat?.emoji}
-              </div>
+            <div key={l.id} className="card flex flex-wrap items-center gap-3 p-3">
+              {/* รูปจริงของสินค้า — เดิมโชว์ไอคอนหมวด ทำให้ทุกประกาศในหมวดเดียวกันหน้าตาเหมือนกันหมด */}
+              {l.images[0] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={l.images[0]}
+                  alt=""
+                  className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-2xl">
+                  {cat?.emoji}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-medium">{l.title}</span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{l.title}</span>
                   {l.status === "active" && !active ? (
                     <span className="chip shrink-0 border-amber-200 bg-amber-50 text-amber-600">
                       ซ่อน–รอต่ออายุ
@@ -201,17 +219,18 @@ export default async function SellHome({
                   </div>
                 )}
               </div>
-              <div className="flex shrink-0 items-center gap-1">
+              {/* มือถือ: ปุ่มลงมาอยู่แถวล่างเต็มความกว้าง ไม่ไปเบียดชื่อสินค้าจนตัดเหลือ 3 คำ */}
+              <div className="flex w-full shrink-0 items-center justify-end gap-1 border-t border-slate-100 pt-2 sm:w-auto sm:border-0 sm:pt-0">
                 <Link
                   href={`/sell/edit/${l.id}`}
-                  className="btn-outline px-2 py-1 text-xs"
+                  className="btn-outline px-3 py-1.5 text-xs"
                 >
                   แก้ไข
                 </Link>
                 {l.status === "draft" && (
                   <form action={submitListingAction.bind(null, l.id)}>
                     <SubmitButton
-                      className="btn-primary px-2 py-1 text-xs"
+                      className="btn-primary px-3 py-1.5 text-xs"
                       pendingText="กำลังส่ง…"
                     >
                       ส่งขออนุมัติ
@@ -220,12 +239,12 @@ export default async function SellHome({
                 )}
                 {l.status === "active" && (
                   <form action={setListingStatusAction.bind(null, l.id, "sold")}>
-                    <SubmitButton className="btn-outline px-2 py-1 text-xs">ขายแล้ว</SubmitButton>
+                    <SubmitButton className="btn-outline px-3 py-1.5 text-xs">ขายแล้ว</SubmitButton>
                   </form>
                 )}
                 {l.status === "sold" && (
                   <form action={setListingStatusAction.bind(null, l.id, "active")}>
-                    <SubmitButton className="btn-outline px-2 py-1 text-xs">เปิดขายอีก</SubmitButton>
+                    <SubmitButton className="btn-outline px-3 py-1.5 text-xs">เปิดขายอีก</SubmitButton>
                   </form>
                 )}
               </div>

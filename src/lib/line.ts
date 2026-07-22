@@ -9,6 +9,10 @@ import type { Seller } from "./types";
 
 export type PushResult = "sent" | "logged" | "quota_exceeded" | "error";
 
+// LINE ID ของ OA — ใช้ทำลิงก์เพิ่มเพื่อน (ดูได้ที่ /admin/line ว่าตรงกับ basicId จริง)
+export const OA_ID = "@475sxbol";
+export const OA_ADD_FRIEND_URL = `https://line.me/R/ti/p/${OA_ID}`;
+
 export async function pushToSeller(
   seller: Seller | undefined,
   message: string
