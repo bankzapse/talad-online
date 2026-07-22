@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getBuyerKey } from "@/lib/auth";
 import { getOrder, getSeller } from "@/lib/data";
 import { formatPrice, formatBaht, timeAgo, orderRef } from "@/lib/format";
-import { ORDER_STATUS, DELIVERY_METHODS, needsShipping } from "@/lib/types";
+import { ORDER_STATUS, DELIVERY_METHODS, needsShipping, needsPrepay } from "@/lib/types";
 import type { Unit, OrderStatus } from "@/lib/types";
 import { cancelOwnOrderAction } from "@/app/actions";
 import { OA_ID, OA_ADD_FRIEND_URL } from "@/lib/line";
@@ -153,6 +153,43 @@ export default async function OrderDetail({
         )}
       </div>
 
+      {/* ---- โอนเงินให้ร้าน ----
+          ตลาดออนไลน์เป็นคนกลาง ไม่ได้รับเงินค่าสินค้า — ผู้ซื้อโอนเข้าบัญชีร้านตรง ๆ
+          ก่อนร้านยืนยันยังไม่ให้โอน กันกรณีของหมดแล้วต้องมาตามเงินคืนกันเอง */}
+      {needsPrepay(order.deliveryMethod) && !cancelled && (
+        <div className="mt-4 card p-5">
+          <h3 className="text-sm font-semibold text-ink">โอนเงินให้ร้าน</h3>
+
+          {order.status === "pending" ? (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+              ⏳ <b>ยังไม่ต้องโอน</b> — รอร้านยืนยันว่ามีของก่อน
+              เลขบัญชีจะขึ้นให้ตรงนี้ทันทีที่ร้านกดยืนยัน
+            </p>
+          ) : shop?.bankAccountNo ? (
+            <>
+              <div className="mt-2 space-y-1.5 rounded-lg bg-slate-50 p-3 text-sm">
+                <Row label="ธนาคาร" value={shop.bankName || "—"} />
+                <Row label="เลขที่บัญชี" value={shop.bankAccountNo} mono />
+                <Row label="ชื่อบัญชี" value={shop.bankAccountName || "—"} />
+                <div className="flex justify-between border-t border-slate-200 pt-1.5 font-medium text-ink">
+                  <span>ยอดที่ต้องโอน</span>
+                  <span>{formatBaht(total)}</span>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                โอนแล้วส่งสลิปให้ร้านทางช่องทางติดต่อด้านล่าง —
+                ตลาดออนไลน์ไม่ได้รับเงินค่าสินค้าและไม่ได้เป็นตัวกลางถือเงิน
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+              ร้านยังไม่ได้ระบุบัญชีรับเงิน — <b>ทักถามร้านก่อนโอน</b> ตามช่องทางด้านล่าง
+              อย่าโอนเข้าบัญชีที่ได้มาจากช่องทางอื่น
+            </p>
+          )}
+        </div>
+      )}
+
       {/* ---- ข้อมูลจัดส่ง ---- */}
       <div className="mt-4 card p-5">
         <h3 className="text-sm font-semibold text-ink">
@@ -220,11 +257,14 @@ export default async function OrderDetail({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex justify-between gap-3">
       <span className="text-slate-500">{label}</span>
-      <span className="text-right text-slate-700">{value}</span>
+      {/* เลขบัญชีใช้ฟอนต์ความกว้างเท่ากัน — อ่านทีละหลักตอนกดโอนไม่หลงตำแหน่ง */}
+      <span className={`text-right text-slate-700 ${mono ? "font-mono font-medium tracking-wide" : ""}`}>
+        {value}
+      </span>
     </div>
   );
 }

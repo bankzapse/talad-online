@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentSeller } from "@/lib/auth";
 import { getSellerOrders } from "@/lib/data";
 import { formatPrice, timeAgo } from "@/lib/format";
-import { ORDER_STATUS, DELIVERY_METHODS, needsShipping } from "@/lib/types";
+import { ORDER_STATUS, DELIVERY_METHODS, needsShipping, needsPrepay } from "@/lib/types";
 import type { Unit } from "@/lib/types";
 import {
   confirmOrderAction,
@@ -34,11 +34,29 @@ export default async function SellerOrders({
       : all.filter((o) => !["completed", "cancelled"].includes(o.status));
   const pendingCount = all.filter((o) => o.status === "pending").length;
 
+  // มีออร์เดอร์ที่ผู้ซื้อต้องโอนเงินให้ แต่ร้านยังไม่ได้กรอกบัญชี
+  // = ผู้ซื้อกดยืนยันแล้วไม่รู้จะโอนไปไหน ออร์เดอร์ค้างจนกว่าจะทักถามกันเอง
+  const needsBank =
+    !seller!.bankAccountNo &&
+    all.some((o) => needsPrepay(o.deliveryMethod) && !["completed", "cancelled"].includes(o.status));
+
   return (
     <div className="mx-auto max-w-3xl">
       <Link href="/sell" className="mb-4 inline-block text-sm text-slate-400 hover:text-slate-600">
         ← กลับร้านของฉัน
       </Link>
+
+      {needsBank && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <span>
+            ⚠️ มีคำสั่งซื้อแบบ<b>โอนก่อน</b> แต่ร้านยังไม่ได้กรอกบัญชีรับเงิน —
+            ผู้ซื้อจะไม่เห็นเลขบัญชีและโอนให้ไม่ได้
+          </span>
+          <Link href="/sell/profile" className="btn-primary px-3 py-1.5 text-xs">
+            กรอกบัญชี
+          </Link>
+        </div>
+      )}
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold">

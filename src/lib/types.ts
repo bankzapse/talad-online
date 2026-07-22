@@ -80,6 +80,13 @@ export function needsShipping(m: DeliveryMethod): boolean {
   return m !== "meetup";
 }
 
+// ผู้ซื้อต้องโอนเงินให้ร้านก่อนได้ของ → ต้องเห็นเลขบัญชีของร้าน
+// (ตลาดออนไลน์เป็นแค่คนกลาง เก็บเฉพาะค่าบริการรายเดือนจากร้าน
+//  เงินค่าสินค้าผู้ซื้อโอนเข้าบัญชีร้านโดยตรง ไม่ผ่านเรา)
+export function needsPrepay(m: DeliveryMethod): boolean {
+  return m === "prepay" || m === "shipping";
+}
+
 export interface Category {
   id: string;
   name: string;
