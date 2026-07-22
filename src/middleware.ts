@@ -27,17 +27,58 @@ function toLineLogin(req: NextRequest, buyer: boolean) {
   return NextResponse.redirect(url);
 }
 
+// เปิดมาจากในแอป LINE → ส่งเข้าหน้า /liff ที่คุยกับ LIFF SDK เป็น
+// ได้ id_token มาเลย ไม่ต้องผ่านหน้ากรอกอีเมล/รหัสผ่านของ LINE
+//
+// ทำงานได้ไม่ว่า Endpoint URL ในคอนโซลจะตั้งไว้เป็นอะไร — LINE ต่อ ?liff.state=
+// (ซึ่งเก็บ query เดิมที่เราส่งไปกับ liff.line.me) มาให้เสมอเมื่อมี query
+function toLiffLanding(req: NextRequest, role: "seller" | "buyer", liffState: string | null) {
+  let next = req.nextUrl.pathname;
+
+  // liff.state หน้าตาเป็น "?next=%2Fsell%2Forders" — ดึงปลายทางจริงกลับมา
+  if (liffState) {
+    try {
+      const inner = new URLSearchParams(liffState.startsWith("?") ? liffState.slice(1) : liffState);
+      const n = inner.get("next");
+      if (n && n.startsWith("/") && !n.startsWith("//") && !n.includes("://")) next = n;
+    } catch {
+      /* liff.state เพี้ยน — ใช้ pathname ตามเดิม */
+    }
+  }
+
+  const url = req.nextUrl.clone();
+  url.pathname = `/liff/${role}`;
+  url.search = "";
+  url.searchParams.set("next", next);
+  return NextResponse.redirect(url);
+}
+
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   // ---- หน้าที่ต้องล็อกอิน ----
   if (!path.startsWith("/admin")) {
-    if (SELLER_ONLY.test(path) && !req.cookies.get("tr_seller")) {
-      return toLineLogin(req, false);
+    const liffState = req.nextUrl.searchParams.get("liff.state");
+    const ua = req.headers.get("user-agent") ?? "";
+    const inLineApp = liffState !== null || /\bLine\/\d/i.test(ua);
+
+    const wantsSeller = SELLER_ONLY.test(path);
+    const wantsBuyer = BUYER_ONLY.test(path) || BUYER_ORDER_FORM.test(path);
+    const hasSeller = Boolean(req.cookies.get("tr_seller"));
+    const hasBuyer = Boolean(req.cookies.get("tr_buyer"));
+
+    if (inLineApp) {
+      if (wantsSeller && !hasSeller) return toLiffLanding(req, "seller", liffState);
+      // ปลายทางผู้ซื้ออาจเป็นหน้าแรก (Endpoint URL ของ LIFF ผู้ซื้อ) ซึ่งไม่ใช่หน้าที่ต้องล็อกอิน
+      // แต่ถ้ามาจาก LIFF ก็ควรล็อกอินให้เลย จะได้ไม่ต้องมากดอีกรอบตอนสั่งซื้อ
+      if (!wantsSeller && !hasBuyer && (wantsBuyer || liffState !== null)) {
+        return toLiffLanding(req, "buyer", liffState);
+      }
+      return NextResponse.next();
     }
-    if ((BUYER_ONLY.test(path) || BUYER_ORDER_FORM.test(path)) && !req.cookies.get("tr_buyer")) {
-      return toLineLogin(req, true);
-    }
+
+    if (wantsSeller && !hasSeller) return toLineLogin(req, false);
+    if (wantsBuyer && !hasBuyer) return toLineLogin(req, true);
     return NextResponse.next();
   }
 
@@ -74,5 +115,8 @@ export const config = {
     "/orders",
     "/orders/:path*",
     "/listing/:id/order",
+    // หน้าแรกอยู่ในนี้เพราะเป็น Endpoint URL ของ LIFF ผู้ซื้อ — ต้องดักตอนมาจาก LIFF
+    // เข้าหน้าแรกปกติแค่เช็ค 2 ค่าแล้วผ่าน ไม่หน่วง
+    "/",
   ],
 };
