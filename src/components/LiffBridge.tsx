@@ -67,6 +67,7 @@ export default function LiffBridge({
         clearTimeout(timer);
         // ร้านใหม่ยังไม่ตั้งชื่อร้าน → พาไปกรอกก่อน ไม่งั้นเข้าไปแล้วทำอะไรไม่ได้
         const to = data.needsProfile ? "/sell/profile?welcome=1&next=/sell/new" : next;
+        // เปิดจากในแอป LINE อยู่แล้ว ไม่ต้องส่งเข้าห้องแชทซ้ำ — ปิดหน้าต่างกลับไปแชทเดิมพอ
         window.location.replace(to);
       } catch (e) {
         clearTimeout(timer);

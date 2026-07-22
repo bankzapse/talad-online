@@ -64,3 +64,8 @@ export async function POST(req: Request) {
   // ร้านใหม่ยังไม่มีชื่อร้าน → ให้ฝั่ง client พาไปกรอกข้อมูลร้านก่อน
   return NextResponse.json({ ok: true, needsProfile: !seller.shopName });
 }
+
+// เผื่อเรียกผิด method — ตอบให้ชัดกว่า 405 เปล่า ๆ
+export function GET() {
+  return NextResponse.json({ ok: false, reason: "post_only" }, { status: 405 });
+}

@@ -13,6 +13,15 @@ export type PushResult = "sent" | "logged" | "quota_exceeded" | "error";
 export const OA_ID = "@475sxbol";
 export const OA_ADD_FRIEND_URL = `https://line.me/R/ti/p/${OA_ID}`;
 
+// ปลายทาง "แบบไม่เจาะจง" — ผู้ใช้กดแค่ปุ่มเข้าสู่ระบบ ไม่ได้กำลังจะไปทำอะไรค้างอยู่
+// เคสนี้พาไปห้องแชท OA เลยดีกว่า เพราะที่นั่นมี Rich Menu เป็นทางเข้าถาวร
+// ไม่ต้องมานั่งค้นหาชื่อ OA เองทีหลัง
+const GENERIC_NEXT = new Set(["/", "/sell"]);
+
+export function isGenericNext(next: string | undefined | null): boolean {
+  return !next || GENERIC_NEXT.has(next);
+}
+
 export async function pushToSeller(
   seller: Seller | undefined,
   message: string

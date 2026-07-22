@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { exchangeCodeForToken, getLineProfile } from "@/lib/line-login";
 import { upsertSellerFromLine } from "@/lib/data";
-import { linkSellerRichMenu } from "@/lib/line";
+import { linkSellerRichMenu, OA_ADD_FRIEND_URL, isGenericNext } from "@/lib/line";
 import { SESSION_COOKIE, BUYER_COOKIE } from "@/lib/auth";
 import { createSessionToken } from "@/lib/session";
 import { safeNext } from "@/lib/url";
@@ -60,10 +60,16 @@ export async function GET(req: Request) {
 
   const opts = { httpOnly: true, path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax" as const };
 
+  // กดปุ่มเข้าสู่ระบบเฉย ๆ (ไม่ได้ค้างงานอะไรไว้) → ส่งเข้าห้องแชท OA
+  // ที่นั่นมี Rich Menu เป็นทางเข้าถาวร ครั้งต่อไปไม่ต้องเปิดเบราว์เซอร์เอง
+  // ถ้ากำลังจะไปทำอะไรอยู่ (เช่น กรอกคำสั่งซื้อ) ห้ามขัดจังหวะ — ไปปลายทางเดิม
+  const landing = (next: string) =>
+    NextResponse.redirect(isGenericNext(next) ? OA_ADD_FRIEND_URL : new URL(safeNext(next), origin));
+
   if (saved.buyer) {
     // ผู้ซื้อ — ใช้ LINE userId เป็น key (gate ปุ่มติดต่อ + rate-limit)
     jar.set(BUYER_COOKIE, createSessionToken(profile.userId), opts);
-    return NextResponse.redirect(new URL(safeNext(saved.next), origin));
+    return landing(saved.next);
   }
 
   const seller = await upsertSellerFromLine(profile.userId, profile.displayName);
@@ -81,5 +87,5 @@ export async function GET(req: Request) {
     );
   }
 
-  return NextResponse.redirect(new URL(safeNext(saved.next), origin));
+  return landing(saved.next);
 }
