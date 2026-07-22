@@ -55,7 +55,10 @@ const SELLER = {
     { bounds: cell(2, 0), action: sell("ร้านของฉัน", "/sell") },
     { bounds: cell(0, 1), action: sell("ข้อมูลร้าน", "/sell/profile") },
     { bounds: cell(1, 1), action: sell("สมาชิก", "/sell/membership") },
-    { bounds: cell(2, 1), action: link("ช่วยเหลือ", `${APP}/help`) },
+    // Rich Menu มีได้อันเดียวต่อบัญชี LINE — พอผูกเมนูผู้ขายแล้ว เมนูผู้ซื้อจะหายไป
+    // ร้านที่อยากซื้อของร้านอื่นเลยไม่มีทางเข้าจากในแชท ต้องมีปุ่มนี้แทน
+    // (หน้าช่วยเหลือยังเข้าได้จาก footer ในเว็บ)
+    { bounds: cell(2, 1), action: buy("เลือกซื้อสินค้า", "/") },
   ],
 };
 
