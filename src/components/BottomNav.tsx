@@ -42,13 +42,29 @@ const IconSearch = (
 );
 
 export default function BottomNav({
-  role,
+  isSeller,
+  isBuyer,
   pendingOrders = 0,
 }: {
-  role: "seller" | "buyer";
+  isSeller: boolean;
+  isBuyer: boolean;
   pendingOrders?: number;
 }) {
   const pathname = usePathname();
+
+  // เมนูตามหน้าที่อยู่ ไม่ใช่ตามบทบาทที่ล็อกอิน
+  //
+  // ร้านค้าซื้อของร้านอื่นได้ (cookie คนละใบ) เลยเป็นทั้งผู้ขายและผู้ซื้อพร้อมกันได้
+  // เดิมยึดผู้ขายไว้ก่อนเสมอ → กำลังกรอกคำสั่งซื้ออยู่แท้ ๆ แต่ข้างล่างเป็น
+  // ลงประกาศ/ข้อมูลร้าน กดแล้วหลุดออกจากงานที่ทำค้างอยู่
+  const inShop = pathname.startsWith("/sell");
+  const role: "seller" | "buyer" = inShop
+    ? isSeller
+      ? "seller"
+      : "buyer"
+    : isBuyer
+    ? "buyer"
+    : "seller";
 
   const items: Item[] =
     role === "seller"
@@ -62,7 +78,10 @@ export default function BottomNav({
           { href: "/", label: "หน้าแรก", icon: IconHome },
           { href: "/?sort=new#listings", label: "ค้นหา", icon: IconSearch },
           { href: "/orders", label: "คำสั่งซื้อ", icon: IconBox, match: "/orders" },
-          { href: "/my-data", label: "ของฉัน", icon: IconUser },
+          // เป็นผู้ขายด้วย → ปุ่มสุดท้ายพากลับร้าน จะได้สลับโหมดได้จากแถบล่างเลย
+          isSeller
+            ? { href: "/sell", label: "ร้านของฉัน", icon: IconShop, badge: pendingOrders }
+            : { href: "/my-data", label: "ของฉัน", icon: IconUser },
         ];
 
   return (

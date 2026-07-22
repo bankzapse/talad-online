@@ -92,11 +92,9 @@ export default async function Nav() {
     </header>
 
     {/* แถบล่างเฉพาะคนที่ล็อกอินแล้ว — คนที่แค่เข้ามาดูของ ไม่ต้องมีอะไรมาบังจอ
-        ผู้ขายมาก่อน: ถ้าล็อกอินทั้งสองบทบาท เมนูร้านสำคัญกว่า (มีออร์เดอร์ค้างต้องรีบทำ) */}
-    {seller ? (
-      <BottomNav role="seller" pendingOrders={pending} />
-    ) : buyerIn ? (
-      <BottomNav role="buyer" />
+        ล็อกอินได้ทั้งสองบทบาทพร้อมกัน (คนละ cookie) แถบล่างเลือกเมนูตามหน้าที่อยู่ */}
+    {seller || buyerIn ? (
+      <BottomNav isSeller={Boolean(seller)} isBuyer={buyerIn} pendingOrders={pending} />
     ) : null}
     </>
   );
