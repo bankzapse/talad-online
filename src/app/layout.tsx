@@ -81,7 +81,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <Nav />
-        <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">{children}</main>
+        {/* pb-24 บนมือถือ = เผื่อที่ให้แถบเมนูล่าง ไม่ให้ทับเนื้อหาบรรทัดสุดท้าย */}
+        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 sm:py-8 sm:pb-8">{children}</main>
 
         <footer className="mt-8 border-t border-slate-200/70 bg-white">
           <div className="mx-auto max-w-6xl px-4 py-10">

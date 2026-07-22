@@ -6,6 +6,7 @@ import { formatBahtExact } from "@/lib/format";
 import { COMPANY } from "@/lib/company";
 import PrintButton from "@/components/PrintButton";
 import Logo from "@/components/Logo";
+import { signInUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +17,9 @@ function receiptNo(id: string, iso: string | null) {
 }
 
 export default async function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
-  const seller = await getCurrentSeller();
-  if (!seller) redirect("/login");
   const { id } = await params;
+  const seller = await getCurrentSeller();
+  if (!seller) redirect(signInUrl({ next: `/sell/receipt/${id}` }));
   const pay = await getPayment(id);
   // เจ้าของเท่านั้น + ต้องยืนยันแล้วถึงออกใบเสร็จ
   if (!pay || pay.sellerId !== seller.id) notFound();

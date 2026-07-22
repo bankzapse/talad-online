@@ -7,6 +7,7 @@ import { ORDER_STATUS, DELIVERY_METHODS, needsShipping } from "@/lib/types";
 import type { Unit, OrderStatus } from "@/lib/types";
 import { cancelOwnOrderAction } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
+import { signInUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function OrderDetail({
   const sp = await searchParams;
 
   const buyerKey = await getBuyerKey();
-  if (!buyerKey) redirect(`/login?buyer=1&next=/orders/${id}`);
+  if (!buyerKey) redirect(signInUrl({ buyer: true, next: `/orders/${id}` }));
 
   const order = await getOrder(id);
   // เห็นได้เฉพาะคำสั่งซื้อของตัวเอง

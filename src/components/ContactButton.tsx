@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Spinner from "./Spinner";
 
 export default function ContactButton({
@@ -13,15 +12,15 @@ export default function ContactButton({
   buyerLoggedIn: boolean;
   lineContact: string;
 }) {
-  const router = useRouter();
   const [state, setState] = useState<"idle" | "loading" | "sent" | "rate" | "fallback">(
     "idle"
   );
 
   async function handleClick() {
     // Gate: ต้องล็อกอินก่อน (กันปั่น push + คุมต้นทุน)
+    // เข้า /api/auth/line ตรง ๆ → เด้งไป LINE ทันที ไม่ต้องแวะหน้า login ให้กดซ้ำ
     if (!buyerLoggedIn) {
-      router.push(`/login?buyer=1&next=/listing/${listingId}`);
+      window.location.href = `/api/auth/line?buyer=1&next=/listing/${listingId}`;
       return;
     }
     setState("loading");

@@ -1,3 +1,4 @@
+import { signInUrl } from "@/lib/url";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
@@ -17,7 +18,7 @@ export default async function NewListing({
   searchParams: Promise<{ error?: string }>;
 }) {
   const seller = await getCurrentSeller();
-  if (!seller) redirect("/login");
+  if (!seller) redirect(signInUrl({ next: "/sell/new" }));
   // ต้องกรอกข้อมูลร้าน (ชื่อร้าน) ให้เสร็จก่อน
   if (!seller.shopName) redirect("/sell/profile?next=/sell/new");
   const sp = await searchParams;

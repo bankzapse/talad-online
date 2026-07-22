@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { signInUrl } from "@/lib/url";
 import { redirect } from "next/navigation";
 import { getBuyerKey } from "@/lib/auth";
 import { getBuyerOrders, getSeller } from "@/lib/data";
@@ -14,7 +15,7 @@ export default async function BuyerOrders({
   searchParams: Promise<{ placed?: string; dup?: string; cancelled?: string; error?: string }>;
 }) {
   const buyerKey = await getBuyerKey();
-  if (!buyerKey) redirect("/login?buyer=1&next=/orders");
+  if (!buyerKey) redirect(signInUrl({ buyer: true, next: "/orders" }));
   const sp = await searchParams;
   const orders = await getBuyerOrders(buyerKey!);
   // ดึงข้อมูลร้านไว้แสดงช่องทางติดต่อ — ถ้าร้านสมาชิกหมด ประกาศจะหาย

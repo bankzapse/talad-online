@@ -1,3 +1,4 @@
+import { signInUrl } from "@/lib/url";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
@@ -18,7 +19,7 @@ export default async function Membership({
   searchParams: Promise<{ paid?: string; error?: string }>;
 }) {
   const seller = await getCurrentSeller();
-  if (!seller) redirect("/login");
+  if (!seller) redirect(signInUrl({ next: "/sell/membership" }));
   const sp = await searchParams;
   const [packages, allPackages, payments, bank] = await Promise.all([
     getPackages(true),

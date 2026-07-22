@@ -1,3 +1,4 @@
+import { signInUrl } from "@/lib/url";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
@@ -20,7 +21,7 @@ export default async function VerifyPhone({
   searchParams: Promise<{ error?: string }>;
 }) {
   const seller = await getCurrentSeller();
-  if (!seller) redirect("/login");
+  if (!seller) redirect(signInUrl({ next: "/sell/verify-phone" }));
   const sp = await searchParams;
   const otpOn = isOtpConfigured();
 

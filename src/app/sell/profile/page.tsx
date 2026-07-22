@@ -4,7 +4,7 @@ import { getCurrentSeller } from "@/lib/auth";
 import { saveShopProfileAction } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 import DocUpload from "@/components/DocUpload";
-import { safeNext } from "@/lib/url";
+import { safeNext, signInUrl } from "@/lib/url";
 import { VERIFY_LABEL } from "@/lib/types";
 import LocationPicker from "@/components/LocationPicker";
 import { getProvinces, findGeoIds, getDistricts, getSubdistricts } from "@/lib/geo";
@@ -25,7 +25,7 @@ export default async function ShopProfile({
   searchParams: Promise<{ next?: string; error?: string; saved?: string; welcome?: string }>;
 }) {
   const seller = await getCurrentSeller();
-  if (!seller) redirect("/login");
+  if (!seller) redirect(signInUrl({ next: "/sell/profile" }));
   const sp = await searchParams;
   const next = safeNext(sp.next, "/sell");
   const isFirstTime = !seller.shopName;

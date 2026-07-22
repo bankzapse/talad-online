@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Logo from "./Logo";
+import BottomNav from "./BottomNav";
 import { getCurrentSeller, isBuyerLoggedIn } from "@/lib/auth";
+import { countPendingOrders } from "@/lib/data";
 import { daysLeft } from "@/lib/format";
 import { logout, logoutBuyer } from "@/app/actions";
 
@@ -8,8 +10,11 @@ export default async function Nav() {
   const seller = await getCurrentSeller();
   const buyerIn = await isBuyerLoggedIn();
   const dleft = seller ? daysLeft(seller.membershipExpiresAt) : null;
+  // เลขบนไอคอน "คำสั่งซื้อ" ในแถบล่าง — ร้านต้องเห็นว่ามีออร์เดอร์ค้างจากทุกหน้า
+  const pending = seller ? await countPendingOrders(seller.id) : 0;
 
   return (
+    <>
     <header className="sticky top-0 z-30 border-b border-slate-200/60 glass">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 text-brand-dark">
@@ -29,8 +34,12 @@ export default async function Nav() {
           </Link>
           {/* ลิงก์คำสั่งซื้อ — แสดงทุกครั้งที่ล็อกอินเป็นผู้ซื้อ แม้จะเป็นผู้ขายอยู่ด้วย
               (ร้านค้าซื้อของร้านอื่นได้ ใช้คนละ cookie กัน) */}
+          {/* บนมือถือซ่อน — แถบเมนูล่างมีปุ่มคำสั่งซื้ออยู่แล้ว ไม่ต้องมีสองที่ */}
           {buyerIn && (
-            <Link href="/orders" className="rounded-full px-3 py-2 text-slate-600 hover:bg-white/70">
+            <Link
+              href="/orders"
+              className="hidden rounded-full px-3 py-2 text-slate-600 hover:bg-white/70 sm:block"
+            >
               📦 คำสั่งซื้อ
             </Link>
           )}
@@ -81,5 +90,14 @@ export default async function Nav() {
         </nav>
       </div>
     </header>
+
+    {/* แถบล่างเฉพาะคนที่ล็อกอินแล้ว — คนที่แค่เข้ามาดูของ ไม่ต้องมีอะไรมาบังจอ
+        ผู้ขายมาก่อน: ถ้าล็อกอินทั้งสองบทบาท เมนูร้านสำคัญกว่า (มีออร์เดอร์ค้างต้องรีบทำ) */}
+    {seller ? (
+      <BottomNav role="seller" pendingOrders={pending} />
+    ) : buyerIn ? (
+      <BottomNav role="buyer" />
+    ) : null}
+    </>
   );
 }

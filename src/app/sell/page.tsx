@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { signInUrl } from "@/lib/url";
 import { redirect } from "next/navigation";
 import { getCurrentSeller } from "@/lib/auth";
 import { getSellerListings, getCategories, countPendingOrders } from "@/lib/data";
@@ -24,7 +25,7 @@ export default async function SellHome({
   }>;
 }) {
   const seller = await getCurrentSeller();
-  if (!seller) redirect("/login");
+  if (!seller) redirect(signInUrl({ next: "/sell" }));
   const sp = await searchParams;
 
   const [listings, categories, pendingOrders, friend] = await Promise.all([
@@ -142,13 +143,13 @@ export default async function SellHome({
         </form>
       </div>
 
-      {/* มือถือ = 2 คอลัมน์เต็มความกว้าง (4 ปุ่มเรียงแถวเดียวบีบจนตัวหนังสือหักกลางคำ)
-          จอใหญ่ = เรียงแถวเดียวตามความกว้างจริงของแต่ละปุ่ม */}
+      {/* บนมือถือซ่อน "รายการสั่งซื้อ" กับ "ข้อมูลร้าน" — อยู่ในแถบเมนูล่างแล้ว
+          เหลือปุ่มลงประกาศ (งานหลัก) กับสมาชิก (ไม่มีในแถบล่าง) */}
       <div className="mb-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <Link href="/sell/new" className="btn-primary col-span-2 sm:col-auto">
           + ลงประกาศใหม่
         </Link>
-        <Link href="/sell/orders" className="btn-outline">
+        <Link href="/sell/orders" className="btn-outline hidden sm:inline-flex">
           รายการสั่งซื้อ
           {pendingOrders > 0 && (
             <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-xs text-amber-700">
@@ -156,10 +157,10 @@ export default async function SellHome({
             </span>
           )}
         </Link>
-        <Link href="/sell/membership" className="btn-outline">
+        <Link href="/sell/membership" className="btn-outline col-span-2 sm:col-auto">
           สมาชิก / ต่ออายุ
         </Link>
-        <Link href="/sell/profile" className="btn-outline col-span-2 sm:col-auto">
+        <Link href="/sell/profile" className="btn-outline hidden sm:inline-flex">
           ข้อมูลร้าน
         </Link>
       </div>

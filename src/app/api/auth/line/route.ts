@@ -10,8 +10,11 @@ export async function GET(req: Request) {
   const buyer = url.searchParams.get("buyer") === "1";
 
   if (!isLineLoginConfigured()) {
-    // ยังไม่ตั้งค่า → กลับไปหน้า login แบบ demo
-    return NextResponse.redirect(new URL(buyer ? "/login?buyer=1" : "/login", url.origin));
+    // ยังไม่ตั้งค่า → กลับไปหน้า login แบบ demo (ต้องพา next ไปด้วย ไม่งั้นล็อกอินเสร็จหลงทาง)
+    const p = new URLSearchParams();
+    if (buyer) p.set("buyer", "1");
+    if (next && next !== "/") p.set("next", next);
+    return NextResponse.redirect(new URL(`/login?${p}`, url.origin));
   }
 
   // ใช้โดเมนที่ผู้ใช้เปิดอยู่จริงเป็นหลัก → callback ตรงกับโดเมนเสมอ

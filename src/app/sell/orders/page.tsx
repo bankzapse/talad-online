@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { signInUrl } from "@/lib/url";
 import { redirect } from "next/navigation";
 import { getCurrentSeller } from "@/lib/auth";
 import { getSellerOrders } from "@/lib/data";
@@ -21,7 +22,7 @@ export default async function SellerOrders({
   searchParams: Promise<{ error?: string; filter?: string }>;
 }) {
   const seller = await getCurrentSeller();
-  if (!seller) redirect("/login");
+  if (!seller) redirect(signInUrl({ next: "/sell/orders" }));
   const sp = await searchParams;
 
   const all = await getSellerOrders(seller!.id);

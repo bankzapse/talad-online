@@ -6,6 +6,7 @@ import { formatPrice, formatStock } from "@/lib/format";
 import { createOrderAction } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 import { DELIVERY_METHODS, needsShipping } from "@/lib/types";
+import { signInUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function OrderPage({
 
   // ต้องล็อกอินก่อนสั่งซื้อ — ผูกออร์เดอร์กับตัวตน + กันสแปมร้าน
   const buyerKey = await getBuyerKey();
-  if (!buyerKey) redirect(`/login?buyer=1&next=/listing/${id}/order`);
+  if (!buyerKey) redirect(signInUrl({ buyer: true, next: `/listing/${id}/order` }));
 
   const shipping = needsShipping(listing.deliveryMethod);
   const dm = DELIVERY_METHODS.find((d) => d.value === listing.deliveryMethod);

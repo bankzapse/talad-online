@@ -1,3 +1,4 @@
+import { signInUrl } from "@/lib/url";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSeller } from "@/lib/auth";
@@ -25,9 +26,9 @@ export default async function EditListing({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
 }) {
-  const seller = await getCurrentSeller();
-  if (!seller) redirect("/login");
   const { id } = await params;
+  const seller = await getCurrentSeller();
+  if (!seller) redirect(signInUrl({ next: `/sell/edit/${id}` }));
   const sp = await searchParams;
 
   const listing = await getListing(id);
