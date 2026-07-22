@@ -23,7 +23,6 @@ export async function GET(req: Request) {
 
   const role = buyer ? "buyer" : "seller";
   const onMobile = isMobileUA(ua);
-  const inLineApp = /\bLine\/\d/i.test(ua ?? "");
   const noLiff = url.searchParams.get("noliff") === "1";
   const wantsEmail = url.searchParams.get("email") === "1";
   const liffId = buyer
@@ -33,16 +32,14 @@ export async function GET(req: Request) {
   // ---- ทางลัดผ่าน LIFF (มือถือเท่านั้น) ----
   // หน้าล็อกอินของ LINE บนเบราว์เซอร์มือถือขึ้นช่องอีเมล+รหัสผ่านเป็นหลัก
   // ปุ่ม "เข้าสู่ระบบด้วยแอป LINE" ถูกซ่อนไว้ล่างสุดใต้หัวข้อ "กรณีเข้าสู่ระบบไม่ได้"
-  // ส่ง liff.line.me แทน → เป็น universal link ของ LINE มือถือจะเปิดแอปให้เลย
-  // ล็อกอินอัตโนมัติ ไม่ต้องเห็นหน้ากรอกรหัสผ่าน
+  //
+  // ส่งไปหน้า /liff แทน — ที่นั่นจะจัดการต่อตามบริบท:
+  //   อยู่ในแอป LINE  → ขอ id_token เงียบ ๆ เข้าเลย
+  //   นอกแอป LINE     → โชว์ปุ่มให้ "แตะเอง" เพื่อเปิดแอป
+  //                     (redirect ไป liff.line.me เองไม่ได้ผล — OS เปิดแอปให้เฉพาะ
+  //                      ตอนผู้ใช้แตะลิงก์จริง ยืนยันจากคลิปหน้าจอแล้ว)
   if (liffId && onMobile && !noLiff && !wantsEmail) {
-    // อยู่ในแอป LINE อยู่แล้ว — เข้าหน้า /liff ตรง ๆ ไม่ต้องวิ่งอ้อมออกไปข้างนอก
-    if (inLineApp) {
-      const to = new URL(`/liff/${role}`, url.origin);
-      to.searchParams.set("next", next);
-      return NextResponse.redirect(to);
-    }
-    const to = new URL(`https://liff.line.me/${liffId}`);
+    const to = new URL(`/liff/${role}`, url.origin);
     to.searchParams.set("next", next);
     return NextResponse.redirect(to);
   }
