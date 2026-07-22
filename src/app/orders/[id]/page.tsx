@@ -6,6 +6,7 @@ import { formatPrice, formatBaht, timeAgo, orderRef } from "@/lib/format";
 import { ORDER_STATUS, DELIVERY_METHODS, needsShipping } from "@/lib/types";
 import type { Unit, OrderStatus } from "@/lib/types";
 import { cancelOwnOrderAction } from "@/app/actions";
+import { OA_ID, OA_ADD_FRIEND_URL } from "@/lib/line";
 import SubmitButton from "@/components/SubmitButton";
 import { signInUrl } from "@/lib/url";
 
@@ -61,6 +62,20 @@ export default async function OrderDetail({
               {orderRef(order.id)}
             </div>
           </div>
+
+          {/* ---- เข้าแชท LINE ต่อ ----
+              ลิงก์ line.me/R/ti/p ใช้ได้ทุกที่: ในแอป LINE เปิดแชทเลย,
+              บนมือถือเปิดแอป LINE ให้, บนคอมฯ เด้งไปแอป LINE บนเครื่อง
+              ไม่ใช้ปุ่มเด้งอัตโนมัติ — ผู้ซื้อต้องได้อ่านเลขที่คำสั่งซื้อก่อน */}
+          <a
+            href={OA_ADD_FRIEND_URL}
+            className="btn-primary mt-4 w-full py-3 text-base"
+          >
+            💬 เปิดแชท LINE
+          </a>
+          <p className="mt-2 text-xs text-brand-dark/70">
+            ความคืบหน้าคำสั่งซื้อจะส่งเข้าแชท LINE — ต้องเพิ่มเพื่อน {OA_ID} ก่อนถึงจะได้รับ
+          </p>
         </div>
       )}
 

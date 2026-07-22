@@ -11,9 +11,8 @@ import {
   getSellers,
 } from "@/lib/data";
 import { formatPrice, formatStock, timeAgo } from "@/lib/format";
-import { isBuyerLoggedIn, getCurrentSeller } from "@/lib/auth";
+import { getCurrentSeller } from "@/lib/auth";
 import TrustBadge from "@/components/TrustBadge";
-import ContactButton from "@/components/ContactButton";
 import ReportButton from "@/components/ReportButton";
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
@@ -45,10 +44,9 @@ export default async function ListingDetail({
   if (!listing) notFound();
   if (listing.status !== "active" && listing.status !== "sold" && !isOwner) notFound();
 
-  const [cat, seller, buyerLoggedIn] = await Promise.all([
+  const [cat, seller] = await Promise.all([
     getCategory(listing.categoryId),
     getSeller(listing.sellerId),
-    isBuyerLoggedIn(),
   ]);
   // ซ่อนถ้าผู้ขายสมาชิกหมด/ถูกแบน (ประกาศไม่แสดงต่อผู้ซื้อ)
   if (!seller || !isSellerActive(seller)) notFound();
@@ -62,10 +60,6 @@ export default async function ListingDetail({
   ]);
   const relCat = new Map(allCats.map((c) => [c.id, c]));
   const relSeller = new Map(allSellers.map((s) => [s.id, s]));
-
-  // ช่องทางติดต่อจริงที่ร้านกรอกไว้ — ห้ามเดา ID เอง ผู้ซื้อจะทักไม่ติด
-  const lineContact =
-    seller.lineId || (seller.contactPhone ? `โทร ${seller.contactPhone}` : "ผ่านปุ่มติดต่อในเว็บ");
 
   return (
     <div>
@@ -175,11 +169,6 @@ export default async function ListingDetail({
                 🛒 สั่งซื้อสินค้านี้
               </Link>
             )}
-            <ContactButton
-              listingId={listing.id}
-              buyerLoggedIn={buyerLoggedIn}
-              lineContact={lineContact}
-            />
             <p className="mt-2 rounded-lg bg-amber-50 p-2 text-center text-xs text-amber-700">
               🛡️ สินค้าอยู่ที่ <b>{listing.province}</b> — หากคุณอยู่คนละจังหวัด แนะนำเลือกผู้ขายที่รับ
               COD/นัดรับ · <b>ห้ามโอนมัดจำ/ค่าสินค้าล่วงหน้า</b> ให้คนไม่รู้จัก
