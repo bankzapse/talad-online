@@ -62,6 +62,44 @@ export async function updatePaymentSettings(s: PaymentSettings): Promise<boolean
   return true;
 }
 
+// ---------- ตั้งค่าระบบ (admin เปิด/ปิดได้เอง ไม่ต้อง redeploy) ----------
+export interface SystemSettings {
+  /** อนุญาตให้ร้านสั่งซื้อประกาศของตัวเอง — เปิดไว้เฉพาะตอนทดสอบระบบ */
+  allowSelfPurchase: boolean;
+}
+
+const DEFAULT_SYSTEM: SystemSettings = { allowSelfPurchase: false };
+
+export async function getSystemSettings(): Promise<SystemSettings> {
+  if (isSupabaseReady()) {
+    try {
+      const { data } = await sb().from("settings").select("value").eq("key", "system").maybeSingle();
+      if (data?.value) return { ...DEFAULT_SYSTEM, ...(data.value as Partial<SystemSettings>) };
+    } catch {
+      // ตาราง settings ยังไม่มี → ใช้ค่าเริ่มต้น (ปลอดภัยที่สุด)
+    }
+    return DEFAULT_SYSTEM;
+  }
+  const v = db.settings["system"] as Partial<SystemSettings> | undefined;
+  return { ...DEFAULT_SYSTEM, ...(v ?? {}) };
+}
+
+export async function updateSystemSettings(s: SystemSettings): Promise<boolean> {
+  if (isSupabaseReady()) {
+    const { error } = await sb()
+      .from("settings")
+      .upsert({ key: "system", value: s, updated_at: new Date().toISOString() });
+    if (error) return false;
+    await logAdmin(
+      "แก้ไขตั้งค่าระบบ",
+      `สั่งซื้อของร้านตัวเอง: ${s.allowSelfPurchase ? "เปิด (โหมดทดสอบ)" : "ปิด"}`
+    );
+    return true;
+  }
+  db.settings["system"] = s as unknown as Record<string, unknown>;
+  return true;
+}
+
 // -----------------------------------------------------------------------------
 // Data layer (async) — สองแบ็กเอนด์:
 //   • Supabase (service client) เมื่อกรอก env ครบ → persist จริง

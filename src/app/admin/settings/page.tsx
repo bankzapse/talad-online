@@ -1,6 +1,10 @@
 import AdminNav from "@/components/AdminNav";
-import { getPaymentSettings } from "@/lib/data";
-import { savePaymentSettingsAction, saveAdminPasswordAction } from "@/app/actions";
+import { getPaymentSettings, getSystemSettings } from "@/lib/data";
+import {
+  savePaymentSettingsAction,
+  saveAdminPasswordAction,
+  saveSystemSettingsAction,
+} from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
@@ -8,15 +12,63 @@ export const dynamic = "force-dynamic";
 export default async function AdminSettings({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string; sys?: string }>;
 }) {
   const sp = await searchParams;
   const s = await getPaymentSettings();
+  const sys = await getSystemSettings();
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold">ตั้งค่าบัญชีรับเงิน</h1>
+      <h1 className="mb-4 text-xl font-bold">ตั้งค่าระบบ</h1>
       <AdminNav active="settings" />
+
+      {sp.sys === "1" && (
+        <div className="mb-3 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
+          ✓ บันทึกตั้งค่าระบบแล้ว
+        </div>
+      )}
+
+      {/* ---- สวิตช์โหมดทดสอบ ---- */}
+      <section className="mb-6 card max-w-lg p-5">
+        <h2 className="font-bold text-ink">โหมดทดสอบ</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          ปกติร้านสั่งซื้อประกาศของตัวเองไม่ได้ (กันปั่นยอด/ปั่นรีวิว)
+          เปิดสวิตช์นี้เมื่อต้องการทดสอบวงจรสั่งซื้อด้วยบัญชี LINE เดียว
+        </p>
+
+        <form action={saveSystemSettingsAction} className="mt-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              name="allowSelfPurchase"
+              defaultChecked={sys.allowSelfPurchase}
+              className="mt-1 h-4 w-4"
+            />
+            <span className="text-sm">
+              <span className="font-medium text-slate-700">
+                อนุญาตให้ร้านสั่งซื้อประกาศของตัวเอง
+              </span>
+              <span className="block text-xs text-slate-500">
+                สำหรับทดสอบระบบเท่านั้น — ปิดกลับก่อนเปิดใช้จริง
+              </span>
+            </span>
+          </label>
+
+          {sys.allowSelfPurchase && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+              ⚠️ ตอนนี้เปิดโหมดทดสอบอยู่ — ร้านสั่งซื้อของตัวเองได้
+              อย่าลืมปิดก่อนเปิดให้คนทั่วไปใช้
+            </div>
+          )}
+
+          <SubmitButton className="btn-primary mt-4 px-4 py-2 text-sm" pendingText="กำลังบันทึก…">
+            บันทึกตั้งค่าระบบ
+          </SubmitButton>
+        </form>
+      </section>
+
+      <h2 className="mb-3 text-lg font-bold">บัญชีรับเงิน</h2>
 
       {sp.saved === "pw" && (
         <div className="mb-3 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">

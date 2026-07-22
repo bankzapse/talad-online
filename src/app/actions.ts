@@ -46,6 +46,8 @@ import {
   updateOrder,
   getSeller,
   isSellerActive,
+  getSystemSettings,
+  updateSystemSettings,
 } from "@/lib/data";
 import { isValidThaiMobile, normalizePhone, verifyOtp } from "@/lib/otp";
 import type { Unit, DeliveryMethod } from "@/lib/types";
@@ -557,8 +559,10 @@ export async function createOrderAction(listingId: string, formData: FormData) {
   if (!shop || !isSellerActive(shop)) redirect(`/listing/${listingId}?error=shopclosed`);
 
   // ห้ามสั่งของร้านตัวเอง (ล็อกอินด้วยบัญชี LINE เดียวกับร้าน)
+  // เปิดข้อยกเว้นได้จาก admin → ตั้งค่า เพื่อทดสอบระบบด้วยบัญชีเดียว
   if (shop!.lineUserId && shop!.lineUserId === buyerKey) {
-    redirect(`/listing/${listingId}?error=ownshop`);
+    const sys = await getSystemSettings();
+    if (!sys.allowSelfPurchase) redirect(`/listing/${listingId}?error=ownshop`);
   }
 
   // กันสั่งซ้ำรัว ๆ — มีออร์เดอร์ที่ยังรอร้านยืนยันของประกาศนี้อยู่แล้ว
@@ -746,4 +750,13 @@ export async function eraseMyDataAction(role: "seller" | "buyer", formData: Form
   const jar = await cookies();
   jar.delete(SESSION_COOKIE);
   redirect("/?erased=1");
+}
+
+// ---------- ตั้งค่าระบบ (admin) ----------
+export async function saveSystemSettingsAction(formData: FormData) {
+  await requireAdmin();
+  const ok = await updateSystemSettings({
+    allowSelfPurchase: formData.get("allowSelfPurchase") === "on",
+  });
+  redirect(ok ? "/admin/settings?sys=1" : "/admin/settings?error=db");
 }
