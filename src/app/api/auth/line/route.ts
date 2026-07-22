@@ -32,6 +32,11 @@ export async function GET(req: Request) {
     sameSite: "lax",
   });
 
+  // ?email=1 = ทางออกสำรอง สำหรับคนที่ไม่มีมือถืออยู่ในมือแต่จำอีเมล LINE ได้
+  // (ปกติบนคอมฯ เราบังคับสแกน QR — ถ้าไม่มีทางนี้ไว้ เขาจะเข้าระบบไม่ได้เลย)
+  const wantsEmail = url.searchParams.get("email") === "1";
   const onMobile = isMobileUA(req.headers.get("user-agent"));
-  return NextResponse.redirect(buildAuthUrl(redirectUri, state, { qrFirst: !onMobile }));
+  return NextResponse.redirect(
+    buildAuthUrl(redirectUri, state, { qrFirst: !onMobile && !wantsEmail })
+  );
 }

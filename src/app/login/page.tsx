@@ -121,9 +121,12 @@ export default async function LoginPage({
             </div>
           )}
           {lineOn ? (
-            <Link href={lineHref} className="btn-primary mt-5 w-full py-3">
-              <span className="text-lg">💚</span> เข้าสู่ระบบด้วย LINE
-            </Link>
+            <>
+              <Link href={lineHref} className="btn-primary mt-5 w-full py-3">
+                <span className="text-lg">💚</span> เข้าสู่ระบบด้วย LINE
+              </Link>
+              <EmailFallback href={`${lineHref}&email=1`} />
+            </>
           ) : (
             <form action={doDemo} className="mt-5">
               <SubmitButton className="btn-primary w-full py-3" pendingText="กำลังเข้า…">
@@ -172,9 +175,12 @@ export default async function LoginPage({
         )}
 
         {lineOn ? (
-          <Link href={lineHref} className="btn-primary mt-5 w-full py-3">
-            <span className="text-lg">💚</span> เข้าสู่ระบบด้วย LINE
-          </Link>
+          <>
+            <Link href={lineHref} className="btn-primary mt-5 w-full py-3">
+              <span className="text-lg">💚</span> เข้าสู่ระบบด้วย LINE
+            </Link>
+            <EmailFallback href={`${lineHref}&email=1`} />
+          </>
         ) : (
           <div className="mt-5 space-y-2">
             <p className="text-xs font-medium text-slate-400">
@@ -213,5 +219,19 @@ export default async function LoginPage({
         </Link>
       </p>
     </div>
+  );
+}
+
+// ทางออกสำรองบนคอมฯ — ปกติบังคับสแกน QR เพราะคนไทยส่วนใหญ่ไม่เคยตั้งอีเมล LINE
+// แต่ต้องมีทางให้คนที่ไม่มีมือถืออยู่ในมือ ไม่งั้นเข้าระบบไม่ได้เลย
+// ซ่อนบนมือถือ (sm:block) เพราะมือถือ LINE เปิดแอปให้อยู่แล้ว ไม่เจอหน้า QR
+function EmailFallback({ href }: { href: string }) {
+  return (
+    <p className="mt-3 hidden text-center text-xs text-slate-400 sm:block">
+      ไม่มีมือถืออยู่กับตัว?{" "}
+      <a href={href} className="underline hover:text-slate-600">
+        เข้าด้วยอีเมล LINE แทน
+      </a>
+    </p>
   );
 }
