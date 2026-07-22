@@ -31,17 +31,30 @@ const cell = (col, row) => ({
 });
 const link = (label, uri) => ({ type: "uri", label, uri });
 
+// ---- ลิงก์ผ่าน LIFF ----
+// เปิดผ่าน liff.line.me → LINE ส่ง id_token ให้เลย ไม่ต้องเด้งหน้ายินยอม
+// query string ถูกส่งต่อไปยัง endpoint URL ที่ตั้งไว้ในคอนโซล เลยใช้ ?next= เลือกหน้าปลายทางได้
+// ไม่ได้ตั้ง LIFF ID ก็ใช้ลิงก์เว็บตรง ๆ เหมือนเดิม (ยังใช้งานได้ แค่ต้องล็อกอินเอง)
+const SELLER_LIFF = process.env.LIFF_ID_SELLER;
+const BUYER_LIFF = process.env.LIFF_ID_BUYER;
+
+const to = (liffId, path) =>
+  liffId ? `https://liff.line.me/${liffId}?next=${encodeURIComponent(path)}` : `${APP}${path}`;
+
+const sell = (label, path) => link(label, to(SELLER_LIFF, path));
+const buy = (label, path) => link(label, to(BUYER_LIFF, path));
+
 const SELLER = {
   size: { width: 2500, height: 1686 },
   selected: true,
   name: "talad-seller",
   chatBarText: "เมนูผู้ขาย",
   areas: [
-    { bounds: cell(0, 0), action: link("ลงประกาศใหม่", `${APP}/sell/new`) },
-    { bounds: cell(1, 0), action: link("รายการสั่งซื้อ", `${APP}/sell/orders`) },
-    { bounds: cell(2, 0), action: link("ร้านของฉัน", `${APP}/sell`) },
-    { bounds: cell(0, 1), action: link("ข้อมูลร้าน", `${APP}/sell/profile`) },
-    { bounds: cell(1, 1), action: link("สมาชิก", `${APP}/sell/membership`) },
+    { bounds: cell(0, 0), action: sell("ลงประกาศใหม่", "/sell/new") },
+    { bounds: cell(1, 0), action: sell("รายการสั่งซื้อ", "/sell/orders") },
+    { bounds: cell(2, 0), action: sell("ร้านของฉัน", "/sell") },
+    { bounds: cell(0, 1), action: sell("ข้อมูลร้าน", "/sell/profile") },
+    { bounds: cell(1, 1), action: sell("สมาชิก", "/sell/membership") },
     { bounds: cell(2, 1), action: link("ช่วยเหลือ", `${APP}/help`) },
   ],
 };
@@ -53,8 +66,8 @@ const BUYER = {
   chatBarText: "เมนู",
   areas: [
     { bounds: { x: 0, y: 0, width: 833, height: 843 }, action: link("เลือกซื้อสินค้า", APP) },
-    { bounds: { x: 833, y: 0, width: 833, height: 843 }, action: link("คำสั่งซื้อของฉัน", `${APP}/orders`) },
-    { bounds: { x: 1666, y: 0, width: 834, height: 843 }, action: link("เปิดร้าน", `${APP}/login`) },
+    { bounds: { x: 833, y: 0, width: 833, height: 843 }, action: buy("คำสั่งซื้อของฉัน", "/orders") },
+    { bounds: { x: 1666, y: 0, width: 834, height: 843 }, action: sell("เปิดร้าน", "/sell") },
   ],
 };
 
