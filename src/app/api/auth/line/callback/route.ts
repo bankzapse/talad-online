@@ -18,29 +18,36 @@ export async function GET(req: Request) {
   const raw = jar.get("line_oauth")?.value;
   jar.delete("line_oauth");
 
-  // ผู้ใช้กดยกเลิกที่หน้า LINE
-  if (url.searchParams.get("error")) {
-    return NextResponse.redirect(new URL("/login?error=cancelled", origin));
+  let saved: { state: string; next: string; buyer: boolean } | null = null;
+  try {
+    saved = raw ? JSON.parse(raw) : null;
+  } catch {
+    saved = null;
   }
+
+  // ล็อกอินไม่สำเร็จ → กลับไปหน้า login "ของบทบาทเดิม" พร้อมปลายทางเดิม
+  // เดิมส่งกลับ /login เปล่า ๆ → ผู้ซื้อไปโผล่หน้าล็อกอินผู้ขาย และปลายทางที่ตั้งใจไปหายเกลี้ยง
+  const fail = (reason: string) => {
+    const p = new URLSearchParams({ error: reason });
+    if (saved?.buyer) p.set("buyer", "1");
+    if (saved?.next) p.set("next", safeNext(saved.next));
+    return NextResponse.redirect(new URL(`/login?${p}`, origin));
+  };
+
+  // ผู้ใช้กดยกเลิกที่หน้า LINE
+  if (url.searchParams.get("error")) return fail("cancelled");
   // cookie หาย = เปิดคนละเบราว์เซอร์กับตอนเริ่ม (in-app browser เด้งออกไปแอปอื่น)
   // หรือค้างไว้นานเกิน 20 นาที
-  if (!raw) {
-    return NextResponse.redirect(new URL("/login?error=session", origin));
-  }
-  if (!code || !state) {
-    return NextResponse.redirect(new URL("/login?error=oauth", origin));
-  }
-  const saved = JSON.parse(raw) as { state: string; next: string; buyer: boolean };
-  if (saved.state !== state) {
-    return NextResponse.redirect(new URL("/login?error=state", origin));
-  }
+  if (!saved) return fail("session");
+  if (!code || !state) return fail("oauth");
+  if (saved.state !== state) return fail("state");
 
   const redirectUri = `${origin}/api/auth/line/callback`;
   const token = await exchangeCodeForToken(code, redirectUri);
-  if (!token) return NextResponse.redirect(new URL("/login?error=token", origin));
+  if (!token) return fail("token");
 
   const profile = await getLineProfile(token.access_token);
-  if (!profile) return NextResponse.redirect(new URL("/login?error=profile", origin));
+  if (!profile) return fail("profile");
 
   const opts = { httpOnly: true, path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax" as const };
 

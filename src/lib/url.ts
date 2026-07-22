@@ -6,5 +6,9 @@ export function safeNext(next: string | null | undefined, fallback = "/"): strin
   if (next.startsWith("//")) return fallback; // protocol-relative → ออกนอกเว็บได้
   if (next.includes("://")) return fallback;
   if (next.includes("\\")) return fallback;
+  // ชี้กลับหน้า login เองทำให้เด้งวนไม่จบ (login → next=/login → login …)
+  if (next === "/login" || next.startsWith("/login?") || next.startsWith("/login/")) {
+    return fallback;
+  }
   return next;
 }

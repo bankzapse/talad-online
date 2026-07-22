@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSellers } from "@/lib/data";
+import { safeNext } from "@/lib/url";
 import { loginAsSeller, loginAsBuyer, logout, logoutBuyer, logoutAdmin, logoutAll } from "@/app/actions";
 import { isLineLoginConfigured } from "@/lib/line-login";
 import { getCurrentSeller, isBuyerLoggedIn, isAdminLoggedIn } from "@/lib/auth";
@@ -41,6 +43,15 @@ export default async function LoginPage({
   const buyerIn = await isBuyerLoggedIn();
   const adminIn = await isAdminLoggedIn();
   const anyIn = Boolean(seller) || buyerIn || adminIn;
+
+  // มี next = ถูกส่งมาล็อกอินก่อนไปทำอะไรสักอย่าง (เช่น กรอกคำสั่งซื้อ)
+  // ถ้าล็อกอินบทบาทนั้นอยู่แล้ว พาไปปลายทางเลย — ไม่งั้นกลับจาก LINE มาแล้วเจอ
+  // หน้าล็อกอินหน้าเดิมซ้ำ ดูเหมือนล็อกอินไม่ติดทั้งที่ติดแล้ว
+  // (เข้า /login เปล่า ๆ ไม่เด้ง เพราะหน้านี้ทำหน้าที่หน้าบัญชี/ออกจากระบบด้วย)
+  if (sp.next) {
+    if (isBuyer && buyerIn) redirect(safeNext(sp.next));
+    if (!isBuyer && seller) redirect(safeNext(sp.next));
+  }
 
   const err = sp.error ? LOGIN_ERR[sp.error] ?? LOGIN_ERR.oauth : null;
   const roleCount = [Boolean(seller), buyerIn, adminIn].filter(Boolean).length;
