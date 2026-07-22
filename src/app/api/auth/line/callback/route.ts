@@ -6,6 +6,7 @@ import { linkSellerRichMenu } from "@/lib/line";
 import { SESSION_COOKIE, BUYER_COOKIE } from "@/lib/auth";
 import { createSessionToken } from "@/lib/session";
 import { safeNext } from "@/lib/url";
+import { readOAuthState } from "@/lib/oauth-state";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -18,12 +19,22 @@ export async function GET(req: Request) {
   const raw = jar.get("line_oauth")?.value;
   jar.delete("line_oauth");
 
-  let saved: { state: string; next: string; buyer: boolean } | null = null;
+  let cookieState: { state: string; next: string; buyer: boolean } | null = null;
   try {
-    saved = raw ? JSON.parse(raw) : null;
+    cookieState = raw ? JSON.parse(raw) : null;
   } catch {
-    saved = null;
+    cookieState = null;
   }
+
+  // state เซ็น HMAC ไว้ → อ่านได้เองแม้ callback จะมาตกคนละเบราว์เซอร์กับตอนเริ่ม
+  // (กด "เข้าสู่ระบบด้วยแอป LINE" บนมือถือ แล้ว LINE ส่งกลับมาที่ in-app browser ของตัวเอง)
+  const signed = readOAuthState(state);
+
+  // ใช้ข้อมูลจาก cookie ก่อนถ้ามีและตรงกัน ไม่มีค่อยใช้ที่เซ็นไว้ใน state
+  const saved =
+    cookieState && cookieState.state === state
+      ? { next: cookieState.next, buyer: cookieState.buyer }
+      : signed;
 
   // ล็อกอินไม่สำเร็จ → กลับไปหน้า login "ของบทบาทเดิม" พร้อมปลายทางเดิม
   // เดิมส่งกลับ /login เปล่า ๆ → ผู้ซื้อไปโผล่หน้าล็อกอินผู้ขาย และปลายทางที่ตั้งใจไปหายเกลี้ยง
@@ -36,11 +47,9 @@ export async function GET(req: Request) {
 
   // ผู้ใช้กดยกเลิกที่หน้า LINE
   if (url.searchParams.get("error")) return fail("cancelled");
-  // cookie หาย = เปิดคนละเบราว์เซอร์กับตอนเริ่ม (in-app browser เด้งออกไปแอปอื่น)
-  // หรือค้างไว้นานเกิน 20 นาที
-  if (!saved) return fail("session");
   if (!code || !state) return fail("oauth");
-  if (saved.state !== state) return fail("state");
+  // ทั้ง cookie และลายเซ็นใน state ใช้ไม่ได้ = ของปลอมหรือหมดอายุจริง ๆ
+  if (!saved) return fail("state");
 
   const redirectUri = `${origin}/api/auth/line/callback`;
   const token = await exchangeCodeForToken(code, redirectUri);

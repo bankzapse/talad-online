@@ -2,12 +2,16 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { isLineLoginConfigured, buildAuthUrl, isMobileUA } from "@/lib/line-login";
 import { safeNext } from "@/lib/url";
+import { createOAuthState } from "@/lib/oauth-state";
 
 // เริ่ม LINE Login — /api/auth/line?next=/sell  (หรือ &buyer=1 สำหรับผู้ซื้อ)
+//   &email=1   ข้ามหน้า QR ไปหน้ากรอกอีเมลเลย (ทางออกสำรองบนคอมฯ)
+//   &noliff=1  ห้ามอ้อมผ่าน LIFF (ใช้ตอน LIFF พังแล้วถอยมาทางนี้ — กันวนไม่จบ)
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const next = safeNext(url.searchParams.get("next"));
   const buyer = url.searchParams.get("buyer") === "1";
+  const ua = req.headers.get("user-agent");
 
   if (!isLineLoginConfigured()) {
     // ยังไม่ตั้งค่า → กลับไปหน้า login แบบ demo (ต้องพา next ไปด้วย ไม่งั้นล็อกอินเสร็จหลงทาง)
@@ -17,13 +21,43 @@ export async function GET(req: Request) {
     return NextResponse.redirect(new URL(`/login?${p}`, url.origin));
   }
 
+  const role = buyer ? "buyer" : "seller";
+  const onMobile = isMobileUA(ua);
+  const inLineApp = /\bLine\/\d/i.test(ua ?? "");
+  const noLiff = url.searchParams.get("noliff") === "1";
+  const wantsEmail = url.searchParams.get("email") === "1";
+  const liffId = buyer
+    ? process.env.NEXT_PUBLIC_LIFF_ID_BUYER
+    : process.env.NEXT_PUBLIC_LIFF_ID_SELLER;
+
+  // ---- ทางลัดผ่าน LIFF (มือถือเท่านั้น) ----
+  // หน้าล็อกอินของ LINE บนเบราว์เซอร์มือถือขึ้นช่องอีเมล+รหัสผ่านเป็นหลัก
+  // ปุ่ม "เข้าสู่ระบบด้วยแอป LINE" ถูกซ่อนไว้ล่างสุดใต้หัวข้อ "กรณีเข้าสู่ระบบไม่ได้"
+  // ส่ง liff.line.me แทน → เป็น universal link ของ LINE มือถือจะเปิดแอปให้เลย
+  // ล็อกอินอัตโนมัติ ไม่ต้องเห็นหน้ากรอกรหัสผ่าน
+  if (liffId && onMobile && !noLiff && !wantsEmail) {
+    // อยู่ในแอป LINE อยู่แล้ว — เข้าหน้า /liff ตรง ๆ ไม่ต้องวิ่งอ้อมออกไปข้างนอก
+    if (inLineApp) {
+      const to = new URL(`/liff/${role}`, url.origin);
+      to.searchParams.set("next", next);
+      return NextResponse.redirect(to);
+    }
+    const to = new URL(`https://liff.line.me/${liffId}`);
+    to.searchParams.set("next", next);
+    return NextResponse.redirect(to);
+  }
+
+  // ---- OAuth ปกติ ----
   // ใช้โดเมนที่ผู้ใช้เปิดอยู่จริงเป็นหลัก → callback ตรงกับโดเมนเสมอ
   // (NEXT_PUBLIC_APP_URL ใช้เป็น fallback เท่านั้น)
   const origin = url.origin || process.env.NEXT_PUBLIC_APP_URL!;
   const redirectUri = `${origin}/api/auth/line/callback`;
-  const state = crypto.randomUUID();
+
+  // state เซ็น HMAC พร้อม next/buyer อยู่ข้างใน — callback อ่านได้เองแม้ cookie หาย
+  const state = createOAuthState({ next, buyer });
 
   const jar = await cookies();
+  // cookie ยังเก็บไว้เป็นชั้นที่แน่นกว่า (ผูก session กับเบราว์เซอร์ที่เริ่ม)
   // อายุ 20 นาที — ผู้ใช้ที่ต้องพิมพ์อีเมล/รหัสผ่าน LINE ใช้เวลานานกว่าคนที่มีแอป
   jar.set("line_oauth", JSON.stringify({ state, next, buyer }), {
     httpOnly: true,
@@ -32,10 +66,6 @@ export async function GET(req: Request) {
     sameSite: "lax",
   });
 
-  // ?email=1 = ทางออกสำรอง สำหรับคนที่ไม่มีมือถืออยู่ในมือแต่จำอีเมล LINE ได้
-  // (ปกติบนคอมฯ เราบังคับสแกน QR — ถ้าไม่มีทางนี้ไว้ เขาจะเข้าระบบไม่ได้เลย)
-  const wantsEmail = url.searchParams.get("email") === "1";
-  const onMobile = isMobileUA(req.headers.get("user-agent"));
   return NextResponse.redirect(
     buildAuthUrl(redirectUri, state, { qrFirst: !onMobile && !wantsEmail })
   );

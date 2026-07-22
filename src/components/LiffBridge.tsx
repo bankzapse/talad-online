@@ -29,7 +29,8 @@ export default function LiffBridge({
     if (done.current) return;
     done.current = true;
 
-    const oauth = `/api/auth/line?${role === "buyer" ? "buyer=1&" : ""}next=${encodeURIComponent(next)}`;
+    // noliff=1 สำคัญ — ไม่งั้น /api/auth/line จะโยนกลับมาที่ LIFF อีก วนไม่จบ
+    const oauth = `/api/auth/line?${role === "buyer" ? "buyer=1&" : ""}noliff=1&next=${encodeURIComponent(next)}`;
     const fallback = (why: string) => {
       console.warn("[liff] ถอยไป OAuth ปกติ:", why);
       window.location.replace(oauth);
