@@ -10,7 +10,16 @@ export function isLineLoginConfigured(): boolean {
   );
 }
 
-export function buildAuthUrl(redirectUri: string, state: string): string {
+// มือถือ = LINE เปิดแอปให้ล็อกอินอัตโนมัติ / คอมพิวเตอร์ = ไม่มีแอปให้เปิด
+export function isMobileUA(ua: string | null | undefined): boolean {
+  return /Android|iPhone|iPad|iPod|Mobile|Line\//i.test(ua ?? "");
+}
+
+export function buildAuthUrl(
+  redirectUri: string,
+  state: string,
+  opts: { qrFirst?: boolean } = {}
+): string {
   const params = new URLSearchParams({
     response_type: "code",
     client_id: process.env.LINE_LOGIN_CHANNEL_ID!,
@@ -22,6 +31,13 @@ export function buildAuthUrl(redirectUri: string, state: string): string {
     // ทำงานเมื่อผูก Login channel กับ LINE OA ไว้ในคอนโซลแล้ว (ไม่ผูกก็ไม่พัง แค่ถูกเมิน)
     bot_prompt: "aggressive",
   });
+
+  // บนคอมฯ LINE ขึ้นหน้ากรอกอีเมล+รหัสผ่านเป็นค่าเริ่มต้น ซึ่งคนไทยส่วนใหญ่จำไม่ได้
+  // (ใช้ LINE ผ่านเบอร์มาตลอด) → สลับให้ขึ้นหน้าสแกน QR ด้วยแอปในมือถือแทน
+  // ยังมีปุ่มให้กลับไปกรอกอีเมลได้อยู่ ไม่ได้ปิดทาง
+  // บนมือถือห้ามใส่ — จะกลายเป็นให้สแกน QR ด้วยเครื่องตัวเอง แทนที่จะเปิดแอป LINE ให้เลย
+  if (opts.qrFirst) params.set("initial_amr_display", "lineqr");
+
   return `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
 }
 

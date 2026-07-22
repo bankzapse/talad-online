@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { isLineLoginConfigured, buildAuthUrl } from "@/lib/line-login";
+import { isLineLoginConfigured, buildAuthUrl, isMobileUA } from "@/lib/line-login";
 import { safeNext } from "@/lib/url";
 
 // เริ่ม LINE Login — /api/auth/line?next=/sell  (หรือ &buyer=1 สำหรับผู้ซื้อ)
@@ -29,5 +29,6 @@ export async function GET(req: Request) {
     sameSite: "lax",
   });
 
-  return NextResponse.redirect(buildAuthUrl(redirectUri, state));
+  const onMobile = isMobileUA(req.headers.get("user-agent"));
+  return NextResponse.redirect(buildAuthUrl(redirectUri, state, { qrFirst: !onMobile }));
 }
