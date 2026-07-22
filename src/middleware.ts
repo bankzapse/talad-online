@@ -27,29 +27,38 @@ function toLineLogin(req: NextRequest, buyer: boolean) {
   return NextResponse.redirect(url);
 }
 
+function inside(n: string | null): string | null {
+  return n && n.startsWith("/") && !n.startsWith("//") && !n.includes("://") ? n : null;
+}
+
+// ปลายทางที่ Rich Menu ขอมา — LINE ส่ง ?next= มาให้คนละแบบแล้วแต่ทาง
+//   เปิดในแอป LINE      → ?next=/sell/orders  (ส่ง query ตรง ๆ)
+//   ผ่านหน้าเว็บ liff   → ?liff.state=%3Fnext%3D%252Fsell%252Forders  (ห่อไว้ชั้นนึง)
+// ไม่รองรับทั้งสองแบบ = กดปุ่มไหนก็ตกหน้าแรกของ endpoint หมด
+function liffTarget(req: NextRequest): string | null {
+  const sp = req.nextUrl.searchParams;
+
+  const direct = inside(sp.get("next"));
+  if (direct) return direct;
+
+  const state = sp.get("liff.state");
+  if (!state) return null;
+  try {
+    const inner = new URLSearchParams(state.startsWith("?") ? state.slice(1) : state);
+    return inside(inner.get("next"));
+  } catch {
+    return null; // liff.state เพี้ยน — ปล่อยให้ใช้ pathname ตามเดิม
+  }
+}
+
 // เปิดมาจากในแอป LINE → ส่งเข้าหน้า /liff ที่คุยกับ LIFF SDK เป็น
 // ได้ id_token มาเลย ไม่ต้องผ่านหน้ากรอกอีเมล/รหัสผ่านของ LINE
-//
-// ทำงานได้ไม่ว่า Endpoint URL ในคอนโซลจะตั้งไว้เป็นอะไร — LINE ต่อ ?liff.state=
-// (ซึ่งเก็บ query เดิมที่เราส่งไปกับ liff.line.me) มาให้เสมอเมื่อมี query
-function toLiffLanding(req: NextRequest, role: "seller" | "buyer", liffState: string | null) {
-  let next = req.nextUrl.pathname;
-
-  // liff.state หน้าตาเป็น "?next=%2Fsell%2Forders" — ดึงปลายทางจริงกลับมา
-  if (liffState) {
-    try {
-      const inner = new URLSearchParams(liffState.startsWith("?") ? liffState.slice(1) : liffState);
-      const n = inner.get("next");
-      if (n && n.startsWith("/") && !n.startsWith("//") && !n.includes("://")) next = n;
-    } catch {
-      /* liff.state เพี้ยน — ใช้ pathname ตามเดิม */
-    }
-  }
-
+// ทำงานได้ไม่ว่า Endpoint URL ในคอนโซลจะตั้งไว้เป็นอะไร
+function toLiffLanding(req: NextRequest, role: "seller" | "buyer", target: string | null) {
   const url = req.nextUrl.clone();
   url.pathname = `/liff/${role}`;
   url.search = "";
-  url.searchParams.set("next", next);
+  url.searchParams.set("next", target ?? req.nextUrl.pathname);
   return NextResponse.redirect(url);
 }
 
@@ -58,9 +67,9 @@ export function middleware(req: NextRequest) {
 
   // ---- หน้าที่ต้องล็อกอิน ----
   if (!path.startsWith("/admin")) {
-    const liffState = req.nextUrl.searchParams.get("liff.state");
     const ua = req.headers.get("user-agent") ?? "";
-    const inLineApp = liffState !== null || /\bLine\/\d/i.test(ua);
+    const target = liffTarget(req);
+    const inLineApp = target !== null || /\bLine\/\d/i.test(ua);
 
     const wantsSeller = SELLER_ONLY.test(path);
     const wantsBuyer = BUYER_ONLY.test(path) || BUYER_ORDER_FORM.test(path);
@@ -68,11 +77,18 @@ export function middleware(req: NextRequest) {
     const hasBuyer = Boolean(req.cookies.get("tr_buyer"));
 
     if (inLineApp) {
-      if (wantsSeller && !hasSeller) return toLiffLanding(req, "seller", liffState);
+      if (wantsSeller && !hasSeller) return toLiffLanding(req, "seller", target);
       // ปลายทางผู้ซื้ออาจเป็นหน้าแรก (Endpoint URL ของ LIFF ผู้ซื้อ) ซึ่งไม่ใช่หน้าที่ต้องล็อกอิน
-      // แต่ถ้ามาจาก LIFF ก็ควรล็อกอินให้เลย จะได้ไม่ต้องมากดอีกรอบตอนสั่งซื้อ
-      if (!wantsSeller && !hasBuyer && (wantsBuyer || liffState !== null)) {
-        return toLiffLanding(req, "buyer", liffState);
+      // ล็อกอินให้เลยเฉพาะตอนมี ?next= จาก Rich Menu — ไม่งั้นคนที่กดลิงก์เว็บที่แชร์
+      // ในแชทจะโดนบังคับล็อกอินทั้งที่แค่อยากเข้ามาดูของ
+      if (!wantsSeller && !hasBuyer && (wantsBuyer || target !== null)) {
+        return toLiffLanding(req, "buyer", target);
+      }
+
+      // ล็อกอินอยู่แล้ว แต่ Rich Menu ขอหน้าอื่น — พาไปหน้านั้น
+      // ไม่งั้นทุกปุ่มในเมนูจะตกที่ Endpoint URL หน้าเดียวกันหมด
+      if (target && target !== path) {
+        return NextResponse.redirect(new URL(target, req.nextUrl.origin));
       }
       return NextResponse.next();
     }
