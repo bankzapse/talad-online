@@ -48,6 +48,7 @@ import {
   isSellerActive,
   getSystemSettings,
   updateSystemSettings,
+  updateNotifySettings,
 } from "@/lib/data";
 import { isValidThaiMobile, normalizePhone, verifyOtp } from "@/lib/otp";
 import type { Unit, DeliveryMethod } from "@/lib/types";
@@ -759,4 +760,14 @@ export async function saveSystemSettingsAction(formData: FormData) {
     allowSelfPurchase: formData.get("allowSelfPurchase") === "on",
   });
   redirect(ok ? "/admin/settings?sys=1" : "/admin/settings?error=db");
+}
+
+// ---------- แจ้งเตือน LINE (admin เปิด/ปิดรายจังหวะ) ----------
+export async function saveNotifySettingsAction(formData: FormData) {
+  await requireAdmin();
+  const { NOTIFY_EVENTS } = await import("@/lib/notify");
+  const map: Record<string, boolean> = {};
+  for (const e of NOTIFY_EVENTS) map[e] = formData.get(e) === "on";
+  const ok = await updateNotifySettings(map);
+  redirect(ok ? "/admin/line?saved=1" : "/admin/line?error=db");
 }

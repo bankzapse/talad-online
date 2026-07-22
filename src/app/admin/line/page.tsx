@@ -1,22 +1,23 @@
 import AdminNav from "@/components/AdminNav";
 import { getSellers } from "@/lib/data";
 import { getLineStatus, isFriendWithOA } from "@/lib/line";
-import { NOTIFY } from "@/lib/notify";
+import { NOTIFY_EVENTS, NOTIFY_LABEL } from "@/lib/notify";
+import { getNotifySettings } from "@/lib/data";
+import { saveNotifySettingsAction } from "@/app/actions";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
-const EVENT_LABEL: Record<string, string> = {
-  order_new: "มีออร์เดอร์ใหม่ → ร้าน",
-  order_confirmed: "ร้านยืนยันแล้ว → ผู้ซื้อ",
-  order_shipped: "จัดส่ง + เลขพัสดุ → ผู้ซื้อ",
-  order_cancelled: "ยกเลิกรายการ → อีกฝ่าย",
-  listing_approved: "อนุมัติประกาศ → ร้าน",
-  listing_rejected: "ตีกลับ/ระงับประกาศ → ร้าน",
-};
 
-export default async function AdminLine() {
+export default async function AdminLine({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; error?: string }>;
+}) {
+  const sp = await searchParams;
   const status = await getLineStatus();
   const sellers = await getSellers();
+  const notify = await getNotifySettings();
 
   // เช็คทีละร้านว่าเพิ่มเพื่อน OA แล้วหรือยัง
   const friends = status.tokenValid
@@ -27,7 +28,7 @@ export default async function AdminLine() {
       )
     : new Map();
 
-  const onCount = Object.values(NOTIFY).filter(Boolean).length;
+  const onCount = NOTIFY_EVENTS.filter((e) => notify[e]).length;
   const quotaLeft =
     status.quotaTotal !== undefined && status.quotaUsed !== undefined
       ? status.quotaTotal - status.quotaUsed
@@ -82,29 +83,42 @@ export default async function AdminLine() {
       {/* ---- จังหวะที่ส่ง ---- */}
       <section className="mt-5">
         <h2 className="mb-2 text-sm font-medium text-slate-500">
-          จังหวะที่ส่งแจ้งเตือน ({onCount}/{Object.keys(NOTIFY).length} เปิดอยู่)
+          จังหวะที่ส่งแจ้งเตือน ({onCount}/{NOTIFY_EVENTS.length} เปิดอยู่)
         </h2>
-        <div className="card divide-y divide-slate-100">
-          {Object.entries(NOTIFY).map(([k, on]) => (
-            <div key={k} className="flex items-center justify-between p-3 text-sm">
-              <span className={on ? "text-slate-700" : "text-slate-400"}>
-                {EVENT_LABEL[k] ?? k}
-              </span>
-              <span
-                className={`chip ${
-                  on
-                    ? "border-brand/30 bg-brand-light text-brand-dark"
-                    : "border-slate-200 bg-slate-50 text-slate-400"
-                }`}
+
+        {sp.saved === "1" && (
+          <div className="mb-2 rounded-lg border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
+            ✓ บันทึกแล้ว — มีผลกับข้อความถัดไปทันที
+          </div>
+        )}
+
+        <form action={saveNotifySettingsAction}>
+          <div className="card divide-y divide-slate-100">
+            {NOTIFY_EVENTS.map((e) => (
+              <label
+                key={e}
+                className="flex cursor-pointer items-center justify-between gap-3 p-3 text-sm hover:bg-slate-50"
               >
-                {on ? "เปิด" : "ปิด"}
-              </span>
-            </div>
-          ))}
-        </div>
-        <p className="mt-2 text-xs text-slate-400">
-          * แก้ได้ที่ <code>src/lib/notify.ts</code> — ปิดจังหวะที่ไม่จำเป็นเพื่อประหยัดโควตา
-        </p>
+                <span className="text-slate-700">{NOTIFY_LABEL[e]}</span>
+                <input
+                  type="checkbox"
+                  name={e}
+                  defaultChecked={notify[e]}
+                  className="h-5 w-5 shrink-0 accent-[#059669]"
+                />
+              </label>
+            ))}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <SubmitButton className="btn-primary px-4 py-2 text-sm" pendingText="กำลังบันทึก…">
+              บันทึกการแจ้งเตือน
+            </SubmitButton>
+            <span className="text-xs text-slate-400">
+              ปิดจังหวะที่ไม่จำเป็นเพื่อประหยัดโควตา · ทุกออร์เดอร์ที่จบใช้ประมาณ {onCount - 1}–{onCount} ข้อความ
+            </span>
+          </div>
+        </form>
       </section>
 
       {/* ---- ร้านที่จะได้รับแจ้งเตือนจริง ---- */}

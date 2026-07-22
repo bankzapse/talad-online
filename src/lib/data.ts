@@ -100,6 +100,39 @@ export async function updateSystemSettings(s: SystemSettings): Promise<boolean> 
   return true;
 }
 
+// ---------- ตั้งค่าแจ้งเตือน LINE (admin เปิด/ปิดรายจังหวะได้) ----------
+// เก็บแยก key จาก 'system' เพื่อให้บันทึกคนละฟอร์มโดยไม่ทับกัน
+export type NotifyMap = Record<string, boolean>;
+
+export async function getNotifySettings(): Promise<NotifyMap> {
+  const { NOTIFY_DEFAULT } = await import("./notify-defaults");
+  if (isSupabaseReady()) {
+    try {
+      const { data } = await sb().from("settings").select("value").eq("key", "notify").maybeSingle();
+      if (data?.value) return { ...NOTIFY_DEFAULT, ...(data.value as NotifyMap) };
+    } catch {
+      // ตาราง settings ยังไม่มี → ใช้ค่าเริ่มต้น
+    }
+    return { ...NOTIFY_DEFAULT };
+  }
+  const v = db.settings["notify"] as NotifyMap | undefined;
+  return { ...NOTIFY_DEFAULT, ...(v ?? {}) };
+}
+
+export async function updateNotifySettings(map: NotifyMap): Promise<boolean> {
+  const on = Object.values(map).filter(Boolean).length;
+  if (isSupabaseReady()) {
+    const { error } = await sb()
+      .from("settings")
+      .upsert({ key: "notify", value: map, updated_at: new Date().toISOString() });
+    if (error) return false;
+    await logAdmin("แก้ไขการแจ้งเตือน LINE", `เปิด ${on}/${Object.keys(map).length} จังหวะ`);
+    return true;
+  }
+  db.settings["notify"] = map as unknown as Record<string, unknown>;
+  return true;
+}
+
 // -----------------------------------------------------------------------------
 // Data layer (async) — สองแบ็กเอนด์:
 //   • Supabase (service client) เมื่อกรอก env ครบ → persist จริง

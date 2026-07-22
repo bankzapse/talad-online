@@ -1,4 +1,8 @@
 import { pushToLineUser, type PushResult } from "./line";
+import { getNotifySettings } from "./data";
+import { NOTIFY_DEFAULT } from "./notify-defaults";
+
+export { NOTIFY_DEFAULT };
 
 // -----------------------------------------------------------------------------
 // แจ้งเตือน LINE — คุมจากที่เดียว
@@ -19,14 +23,17 @@ export type NotifyEvent =
   | "listing_approved" // อนุมัติประกาศ → ร้าน: ดูสถานะเองได้ที่ร้านของฉัน
   | "listing_rejected"; // ตีกลับ/ระงับ → ร้าน: ต้องแก้ไข ไม่ส่งก็ไม่รู้ว่าต้องทำอะไร
 
-export const NOTIFY: Record<NotifyEvent, boolean> = {
-  order_new: true,
-  order_confirmed: true, // เปิด — จังหวะที่ผู้ซื้อรอคำตอบว่า "ร้านรับออร์เดอร์ไหม"
-  order_shipped: true,
-  order_cancelled: true,
-  listing_approved: false, // ปิด — ประกาศขึ้นเว็บเองอยู่แล้ว ไม่เร่งด่วน
-  listing_rejected: true,
+
+export const NOTIFY_LABEL: Record<NotifyEvent, string> = {
+  order_new: "มีออร์เดอร์ใหม่ → ร้าน",
+  order_confirmed: "ร้านยืนยันแล้ว → ผู้ซื้อ",
+  order_shipped: "จัดส่ง + เลขพัสดุ → ผู้ซื้อ",
+  order_cancelled: "ยกเลิกรายการ → อีกฝ่าย",
+  listing_approved: "อนุมัติประกาศ → ร้าน",
+  listing_rejected: "ตีกลับ/ระงับประกาศ → ร้าน",
 };
+
+export const NOTIFY_EVENTS = Object.keys(NOTIFY_DEFAULT) as NotifyEvent[];
 
 // ส่งเฉพาะจังหวะที่เปิดไว้ — จังหวะที่ปิดจะข้ามไปเงียบ ๆ ไม่เปลืองโควตา
 export async function notify(
@@ -35,6 +42,7 @@ export async function notify(
   message: string,
   label = "?"
 ): Promise<PushResult | "skipped"> {
-  if (!NOTIFY[event]) return "skipped";
+  const settings = await getNotifySettings();
+  if (!settings[event]) return "skipped";
   return pushToLineUser(lineUserId, message, label);
 }
