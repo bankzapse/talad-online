@@ -7,6 +7,7 @@ import DocUpload from "@/components/DocUpload";
 import { safeNext, signInUrl } from "@/lib/url";
 import { VERIFY_LABEL } from "@/lib/types";
 import { THAI_BANKS } from "@/lib/banks";
+import BankAccountInput from "@/components/BankAccountInput";
 import LocationPicker from "@/components/LocationPicker";
 import { getProvinces, findGeoIds, getDistricts, getSubdistricts } from "@/lib/geo";
 
@@ -192,12 +193,7 @@ export default async function ShopProfile({
                 </div>
                 <div className="flex-1">
                   <label className="label">เลขที่บัญชี</label>
-                  <input
-                    name="bankAccountNo"
-                    defaultValue={seller.bankAccountNo ?? ""}
-                    className="input"
-                    placeholder="xxx-xxxxxx-x"
-                  />
+                  <BankAccountInput name="bankAccountNo" defaultValue={seller.bankAccountNo ?? ""} />
                 </div>
               </div>
 
