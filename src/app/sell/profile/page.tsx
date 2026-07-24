@@ -6,6 +6,7 @@ import SubmitButton from "@/components/SubmitButton";
 import DocUpload from "@/components/DocUpload";
 import { safeNext, signInUrl } from "@/lib/url";
 import { VERIFY_LABEL } from "@/lib/types";
+import { THAI_BANKS } from "@/lib/banks";
 import LocationPicker from "@/components/LocationPicker";
 import { getProvinces, findGeoIds, getDistricts, getSubdistricts } from "@/lib/geo";
 
@@ -171,12 +172,23 @@ export default async function ShopProfile({
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="label">ธนาคาร</label>
-                  <input
+                  <select
                     name="bankName"
                     defaultValue={seller.bankName ?? ""}
                     className="input"
-                    placeholder="เช่น ไทยพาณิชย์"
-                  />
+                  >
+                    <option value="">เลือกธนาคาร</option>
+                    {THAI_BANKS.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                    {/* ถ้าค่าที่เคยบันทึกไว้ไม่อยู่ในรายการ (ของเก่าที่พิมพ์เอง)
+                        ยังเก็บไว้เป็นตัวเลือก จะได้ไม่หายตอนเปิดหน้า */}
+                    {seller.bankName && !THAI_BANKS.includes(seller.bankName) && (
+                      <option value={seller.bankName}>{seller.bankName}</option>
+                    )}
+                  </select>
                 </div>
                 <div className="flex-1">
                   <label className="label">เลขที่บัญชี</label>
